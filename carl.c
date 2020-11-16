@@ -1,3 +1,9 @@
+/*
+ * Crypto Ancienne Resource Loader "carl" (and example application)
+ * Copyright 2020 Cameron Kaiser. All rights reserved.
+ * BSD license (see README.md)
+ */
+
 #include <stdio.h>
 #include <sys/time.h>
 #include <sys/types.h>
