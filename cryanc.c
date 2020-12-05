@@ -41494,7 +41494,7 @@ struct TLSPacket *tls_build_hello(struct TLSContext *context, int tls13_downgrad
             if (context->is_server)
                 extension_len += 6;
             else
-                extension_len += 9;
+                extension_len += 11;
         }
         if ((context->is_server) && (context->negotiated_alpn) && (context->version != TLS_V13) && (context->version != DTLS_V13)) {
 #else
@@ -41819,9 +41819,10 @@ struct TLSPacket *tls_build_hello(struct TLSContext *context, int tls13_downgrad
                 else
                     tls_packet_uint16(packet, context->version);
             } else {
-                tls_packet_uint16(packet, 5);
-                tls_packet_uint8(packet, 4);
+                tls_packet_uint16(packet, 7);
+                tls_packet_uint8(packet, 6);
                 tls_packet_uint16(packet, TLS_V13);
+                tls_packet_uint16(packet, TLS_V12);
                 tls_packet_uint16(packet, 0x7F1C);
             }
             if (context->connection_status == 4) {
@@ -42418,7 +42419,6 @@ int tls_parse_hello(struct TLSContext *context, const unsigned char *buf, int bu
     VERSION_SUPPORTED(version, TLS_NOT_SAFE)
     DEBUG_PRINT2("VERSION REQUIRED BY REMOTE %x, VERSION NOW %x\n", (int)version, (int)context->version);
 #ifdef TLS_LEGACY_SUPPORT
-    /* when no legacy support, don't downgrade */
 #ifndef TLS_FORCE_LOCAL_VERSION
     /* downgrade? */
     if (context->dtls) {
@@ -42433,9 +42433,21 @@ int tls_parse_hello(struct TLSContext *context, const unsigned char *buf, int bu
         context->version = version;
         if (!context->is_server)
             _private_tls_change_hash_type(context);
+        DEBUG_PRINT1("DOWNGRADED TO %x\n", (int)context->version);
     }
 #endif
+#else
+    /* allow downgrade from TLS 1.3 to TLS 1.2 if remote negotiates that,
+       but not any further */
+    if (context->version == TLS_V13 && version == TLS_V12) {
+        downgraded = 1;
+        context->version = version;
+        if (!context->is_server)
+            _private_tls_change_hash_type(context);
+        DEBUG_PRINT1("DOWNGRADED TO %x\n", (int)context->version);
+    }
 #endif
+
     memcpy(context->remote_random, &buf[res], TLS_CLIENT_RANDOM_SIZE);
     res += TLS_CLIENT_RANDOM_SIZE;
     
