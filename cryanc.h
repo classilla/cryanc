@@ -1,24 +1,24 @@
 #ifndef TLSE_H
 #define TLSE_H
 
-// #define DEBUG
+/* #define DEBUG */
 
 #define NO_SSL_COMPATIBLE_INTERFACE 1
 /* doesn't currently work */
-// #define TLS_CURVE25519 1
+/* #define TLS_CURVE25519 1 */
 
-// define TLS_LEGACY_SUPPORT to support TLS 1.1/1.0 (legacy)
-// legacy support it will use an additional 272 bytes / context
+/* define TLS_LEGACY_SUPPORT to support TLS 1.1/1.0 (legacy)
+   legacy support it will use an additional 272 bytes / context */
 #ifndef NO_TLS_LEGACY_SUPPORT
 #define TLS_LEGACY_SUPPORT
 #endif
-// SSL_* style blocking APIs
+/* SSL_* style blocking APIs */
 #ifndef NO_SSL_COMPATIBLE_INTERFACE
 #define SSL_COMPATIBLE_INTERFACE
 #endif
-// support ChaCha20/Poly1305
+/* support ChaCha20/Poly1305 */
 #if !defined(__BIG_ENDIAN__) && ((!defined(__BYTE_ORDER)) || (__BYTE_ORDER == __LITTLE_ENDIAN))
-    // not working on big endian machines
+    /* not working on big endian machines */
     #ifndef NO_TLS_WITH_CHACHA20_POLY1305
         #define TLS_WITH_CHACHA20_POLY1305
     #endif
@@ -26,31 +26,31 @@
 #ifndef NO_TLS_13
 #define WITH_TLS_13
 #endif
-// support forward secrecy (Diffie-Hellman ephemeral)
+/* support forward secrecy (Diffie-Hellman ephemeral) */
 #ifndef NO_TLS_FORWARD_SECRECY
 #define TLS_FORWARD_SECRECY
 #endif
-// support client-side ECDHE
+/* support client-side ECDHE */
 #ifndef NO_TLS_CLIENT_ECDHE
 #define TLS_CLIENT_ECDHE
 #endif
-// support ecdsa
+/* support ECDSA */
 #ifndef NO_TLS_ECDSA_SUPPORTED
+/* support ECDSA client-side */
+#define TLS_CLIENT_ECDSA
 #define TLS_ECDSA_SUPPORTED
 #endif
-// support ecdsa client-side
-#define TLS_CLIENT_ECDSA
 
-// TLS renegotiation is disabled by default (secured or not)
-// do not uncomment next line unless you know what you're doing!
-// #define TLS_ACCEPT_SECURE_RENEGOTIATION
+/* TLS renegotiation is disabled by default (secured or not)
+   do not uncomment next line unless you know what you're doing! */
+/* #define TLS_ACCEPT_SECURE_RENEGOTIATION */
 
-// basic superficial X509v1 certificate support
+/* basic superficial X509v1 certificate support */
 #ifndef NO_TLS_X509_V1_SUPPORT
 #define TLS_X509_V1_SUPPORT
 #endif
 
-// disable TLS_RSA_WITH_* ciphers
+/* disable TLS_RSA_WITH_* ciphers */
 #ifndef NO_TLS_ROBOT_MITIGATION
 #define TLS_ROBOT_MITIGATION
 #endif
@@ -97,7 +97,7 @@
 #define TLS_RSA_WITH_AES_128_GCM_SHA256       0x009C
 #define TLS_RSA_WITH_AES_256_GCM_SHA384       0x009D
 
-// forward secrecy
+/* forward secrecy */
 #define TLS_DHE_RSA_WITH_AES_128_CBC_SHA      0x0033
 #define TLS_DHE_RSA_WITH_AES_256_CBC_SHA      0x0039
 #define TLS_DHE_RSA_WITH_AES_128_CBC_SHA256   0x0067
@@ -188,7 +188,7 @@ typedef enum {
     no_error = 255
 } TLSAlertDescription;
 
-// forward declarations
+/* forward declarations */
 struct TLSPacket;
 struct TLSCertificate;
 struct TLSContext;
@@ -200,10 +200,10 @@ typedef int (*tls_validation_function)(struct TLSContext *context, struct TLSCer
 
 /*
   Global initialization. Optional, as it will be called automatically;
-  however, the initialization is not thread-safe, so if you intend to use TLSe
-  from multiple threads, you'll need to call tls_init() once, from a single thread,
-  before using the library.
- */
+  however, the initialization is not thread-safe, so if you intend to use it
+  from multiple threads, you'll need to call tls_init() once, from a single
+  thread, before using the library.
+*/
 void tls_init();
 unsigned char *tls_pem_decode(const unsigned char *data_in, unsigned int input_length, int cert_index, unsigned int *output_len);
 struct TLSCertificate *tls_create_certificate();
@@ -233,7 +233,7 @@ int tls_random(unsigned char *key, int len);
 /*
   Get encrypted data to write, if any. Once you've sent all of it, call
   tls_buffer_clear().
- */
+*/
 const unsigned char *tls_get_write_buffer(struct TLSContext *context, unsigned int *outlen);
 
 void tls_buffer_clear(struct TLSContext *context);
@@ -249,7 +249,7 @@ void tls_read_clear(struct TLSContext *context);
   the remainder will be left in the internal buffers for next tls_read(). Returns -1 for
   fatal error, 0 for no more data, or otherwise the number of bytes copied into the buffer
   (up to a maximum of the given size).
- */
+*/
 int tls_read(struct TLSContext *context, unsigned char *buf, unsigned int size);
 
 struct TLSContext *tls_create_context(unsigned char is_server, unsigned short version);
@@ -288,14 +288,14 @@ int tls_certificate_chain_is_valid_root(struct TLSContext *context, struct TLSCe
   Add a certificate or a certificate chain to the given context, in PEM form.
   Returns a negative value (TLS_GENERIC_ERROR etc.) on error, 0 if there were no
   certificates in the buffer, or the number of loaded certificates on success.
- */
+*/
 int tls_load_certificates(struct TLSContext *context, const unsigned char *pem_buffer, int pem_size);
 
 /*
   Add a private key to the given context, in PEM form. Returns a negative value
   (TLS_GENERIC_ERROR etc.) on error, 0 if there was no private key in the
   buffer, or 1 on success.
- */
+*/
 int tls_load_private_key(struct TLSContext *context, const unsigned char *pem_buffer, int pem_size);
 struct TLSPacket *tls_build_certificate(struct TLSContext *context);
 struct TLSPacket *tls_build_finished(struct TLSContext *context);
@@ -320,7 +320,7 @@ struct TLSPacket *tls_build_alert(struct TLSContext *context, char critical, uns
   status of tls_established(). If the library has anything to send back on the
   socket (e.g. as part of the handshake), tls_get_write_buffer() will return
   non-NULL.
- */
+*/
 int tls_consume_stream(struct TLSContext *context, const unsigned char *buf, int buf_len, tls_validation_function certificate_verify);
 void tls_close_notify(struct TLSContext *context);
 void tls_alert(struct TLSContext *context, unsigned char critical, int code);
@@ -333,7 +333,7 @@ int tls_pending(struct TLSContext *context);
   Exportable contexts use a bit more memory, to be able to hold the keys.
 
   Note that imported keys are not reexportable unless TLS_REEXPORTABLE is set.
- */
+*/
 void tls_make_exportable(struct TLSContext *context, unsigned char exportable_flag);
 
 int tls_export_context(struct TLSContext *context, unsigned char *buffer, unsigned int buf_len, unsigned char small_version);
@@ -349,7 +349,7 @@ void tls_print_certificate(const char *fname);
 int tls_add_alpn(struct TLSContext *context, const char *alpn);
 int tls_alpn_contains(struct TLSContext *context, const char *alpn, unsigned char alpn_size);
 const char *tls_alpn(struct TLSContext *context);
-// useful when renewing certificates for servers, without the need to restart the server
+/* useful when renewing certificates for servers, without the need to restart the server */
 int tls_clear_certificates(struct TLSContext *context);
 int tls_make_ktls(struct TLSContext *context, int socket);
 int tls_unmake_ktls(struct TLSContext *context, int socket);
@@ -429,7 +429,7 @@ int tls_remote_error(struct TLSContext *context);
 #endif
 
 #ifdef __cplusplus
-}  // extern "C"
+}  /* extern "C" */
 #endif
 
 #endif

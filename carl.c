@@ -69,12 +69,12 @@ int validate_certificate(struct TLSContext *context, struct TLSCertificate **cer
     if (certificate_chain) {
         for (i = 0; i < len; i++) {
             struct TLSCertificate *certificate = certificate_chain[i];
-            // check certificate ...
+            /* check certificate ... */
         }
     }
-    //return certificate_expired;
-    //return certificate_revoked;
-    //return certificate_unknown;
+    /* return certificate_expired;
+    // return certificate_revoked;
+    // return certificate_unknown; */
     return no_error;
 }
 
