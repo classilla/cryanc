@@ -23260,6 +23260,17 @@ const ltc_ecc_set_type ltc_ecc_sets[] = {
         "4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5",
     },
  #endif
+ #ifdef TLS_CURVE25519
+    {
+        32,
+        "X25519",
+        "7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED",
+        "0000000000000000000000000000000000000000000000000000000000000000",
+        "1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED",
+        "0000000000000000000000000000000000000000000000000000000000000009",
+        "20AE19A1B8A086B4E01EDD2C7748D14C923D4D7E6D7C61B229E9C5A27ECED3D9",
+    },
+ #endif
  #ifdef ECC384
     {
         48,
@@ -41700,6 +41711,8 @@ struct TLSPacket *tls_build_hello(struct TLSContext *context, int tls13_downgrad
                 
 #ifdef TLS_CLIENT_ECDHE
                 extension_len += 12;
+                if ((context->version == TLS_V12) || (context->version == DTLS_V12))
+                    extension_len += 6; /* CK: needed for EC with 1.2 only */
 #endif
                 if (sni_len)
                     extension_len += sni_len + 9;
@@ -41760,8 +41773,16 @@ struct TLSPacket *tls_build_hello(struct TLSContext *context, int tls13_downgrad
 #ifdef TLS_CURVE25519
                 tls_packet_uint16(packet, x25519.iana);
 #else
-                tls_packet_uint16(packet, secp224r1.iana);
+                tls_packet_uint16(packet, secp521r1.iana);
 #endif
+
+                /* CK: add EC point formats for TLS 1.2 */
+                if ((context->version == TLS_V12) || (context->version == DTLS_V12)) {
+                    tls_packet_uint16(packet, 0x000b);
+                    tls_packet_uint16(packet, 0x0002);
+                    tls_packet_uint8 (packet,   0x01);
+                    tls_packet_uint8 (packet,   0x00);
+                }
 #endif
 #endif
                 if (alpn_len) {
@@ -42561,11 +42582,10 @@ int tls_parse_hello(struct TLSContext *context, const unsigned char *buf, int bu
                                 //     selected = 1;
                                 //     break;
 #endif
-                                // do not use it anymore
-                                // case 25:
-                                //    context->curve = &secp521r1;
-                                //    selected = 1;
-                                //    break;
+                                case 25:
+                                    context->curve = &secp521r1;
+                                    selected = 1;
+                                    break;
                             }
                             if (selected) {
                                 DEBUG_PRINT1("SELECTED CURVE %s\n", context->curve->name);

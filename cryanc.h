@@ -4,7 +4,8 @@
 // #define DEBUG
 
 #define NO_SSL_COMPATIBLE_INTERFACE 1
-#define TLS_CURVE25519 1
+/* doesn't currently work */
+// #define TLS_CURVE25519 1
 
 // define TLS_LEGACY_SUPPORT to support TLS 1.1/1.0 (legacy)
 // legacy support it will use an additional 272 bytes / context
@@ -38,11 +39,10 @@
 #define TLS_ECDSA_SUPPORTED
 #endif
 // support ecdsa client-side
-// this doesn't work yet
-//#define TLS_CLIENT_ECDSA
+#define TLS_CLIENT_ECDSA
 
 // TLS renegotiation is disabled by default (secured or not)
-// do not uncomment next line!
+// do not uncomment next line unless you know what you're doing!
 // #define TLS_ACCEPT_SECURE_RENEGOTIATION
 
 // basic superficial X509v1 certificate support
