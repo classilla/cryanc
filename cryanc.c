@@ -123,9 +123,9 @@ typedef unsigned long long u_int64_t;
 /* MacPorts compiler, assume this is SUS */
 #warning compiling for MacPorts toolchain
 #else
-#if (__APPLE_CC__ < 784)
-/* Rhapsody-class compiler, including Mac OS X Server v1.x */
-#warning compiling for Rhapsody-Mac OS X Server
+#if (__APPLE_CC__ < 913)
+/* Rhapsody to early OS X class compiler, including Mac OS X Server v1.x */
+#warning compiling for Rhapsody-Mac OS X Server-Public Beta
 #include <stdarg.h>
 #define NOT_POSIX 1
 #else
@@ -197,7 +197,8 @@ typedef unsigned long long u_int64_t;
 #ifdef  __64BIT__
    typedef int64_t                 intptr_t;
    typedef uint64_t                uintptr_t;
-#else
+/* We can't typedef these on OS X Public Beta or the build will fail */
+#elif !defined __APPLE_CC__ || (__APPLE_CC__ < 784)
    typedef int32_t                 intptr_t;
    typedef uint32_t                uintptr_t;
 #endif
