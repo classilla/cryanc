@@ -1,6 +1,6 @@
 # Crypto Ancienne: TLS for the Internet of Old Things
 
-Copyright (C) 2020 Cameron Kaiser. All rights reserved.
+Copyright (C) 2020-1 Cameron Kaiser and Contributors. All rights reserved.
 
 Crypto Ancienne, or Cryanc for short, is a TLS library
 with an aim for compatibility with pre-C99 C compilers and
@@ -71,6 +71,12 @@ OpenSTEP 4.0 probably also works given that these all do.
 - A/UX 3.1 (68K; `gcc` 2.7.2.2, requires `-lbsd`)
 
 - Power MachTen 4.1.4 (PowerPC; `gcc` 2.8.1; `setstackspace 1048576 /usr/bin/cpp` and `setstackspace 4194304 /usr/bin/as`)
+
+## Working contributed configurations
+
+These are attested to be working but are maintained by others.
+
+- Mac OS X Public Beta (PowerPC; `gcc`)
 
 ## Partially working configurations
 
