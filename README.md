@@ -68,14 +68,13 @@ OpenSTEP 4.0 probably also works given that these all do.
 
 - AIX 4+ (PowerPC, Power ISA; `gcc` 2.7.2.2 and 4.8). This is tested on 4.1.5 and 6.1, and should "just work" on 5L and 7.
 
+- A/UX 3.1 (68K; `gcc` 2.7.2.2, requires `-lbsd`)
+
+- Power MachTen 4.1.4 (PowerPC; `gcc` 2.8.1; `setstackspace 1048576 /usr/bin/cpp` and `setstackspace 4194304 /usr/bin/as`)
+
 ## Partially working configurations
 
-- A/UX 3.1 (68K; `gcc` 2.7.2.2, requires `-lbsd`). Builds and some TLS sites are accessible but others have consistent failures.
-- Power MachTen 4.1.4 (PowerPC; `gcc` 2.8.1; `setstackspace 1048576 /usr/bin/cpp` and `setstackspace 4194304 /usr/bin/as`). Builds and some TLS sites are accessible but others have consistent failures. Unchanged by using built-in networking.
-
-(Suspiciously, the exact same failures occur on the exact same sites on both and may be related to lower-level Apple networking code.)
-
-- IRIX (SGI MIPS; MIPSPro 7.4 `c99`). Builds and unencrypted HTTP works but TLS segfaults due to miscompilation with some codeblocks that cast byte arrays to `unsigned short`s. This should be correctable, just tedious.
+- IRIX (SGI MIPS; MIPSPro 7.4 `c99` and `gcc` 9). Builds and unencrypted HTTP works but TLS segfaults due to issues with some codeblocks that cast byte arrays to `unsigned short`s using `htons()` and other such functions. This should be correctable, just tedious.
 
 ## Doesn't compile but planned
 
