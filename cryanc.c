@@ -198,9 +198,11 @@ typedef unsigned long long u_int64_t;
    typedef int64_t                 intptr_t;
    typedef uint64_t                uintptr_t;
 /* We can't typedef these on OS X Public Beta or the build will fail */
-#elif !defined __APPLE_CC__ || (__APPLE_CC__ < 784)
+#else
+#if !defined(__APPLE_CC__) || (__APPLE_CC__ < 784)
    typedef int32_t                 intptr_t;
    typedef uint32_t                uintptr_t;
+#endif
 #endif
 
 #endif
