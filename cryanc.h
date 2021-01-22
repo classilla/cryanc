@@ -17,7 +17,7 @@
 #define SSL_COMPATIBLE_INTERFACE
 #endif
 /* support ChaCha20/Poly1305 */
-#if !defined(__BIG_ENDIAN__) && ((!defined(__BYTE_ORDER)) || (__BYTE_ORDER == __LITTLE_ENDIAN))
+#if !defined(__BIG_ENDIAN__) && ((!defined(__BYTE_ORDER)) || (__BYTE_ORDER == __LITTLE_ENDIAN)) && ((!defined(BYTE_ORDER)) || (BYTE_ORDER == LITTLE_ENDIAN))
     /* not working on big endian machines */
     #ifndef NO_TLS_WITH_CHACHA20_POLY1305
         #define TLS_WITH_CHACHA20_POLY1305

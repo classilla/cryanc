@@ -141,6 +141,10 @@ typedef unsigned long long u_int64_t;
 #if defined(__AUX__)
 #warning compiling for A/UX - remember to include -lbsd
 #include <stdarg.h>
+/* Seems to lack the usual macros for endianness. */
+#ifndef __BIG_ENDIAN__
+#define __BIG_ENDIAN__ 1
+#endif
 #define NOT_POSIX 1
 #endif
 
