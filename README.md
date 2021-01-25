@@ -76,7 +76,8 @@ OpenSTEP 4.0 probably also works given that these all do.
 
 These are attested to be working but are maintained by others.
 
-- Mac OS X Public Beta (PowerPC; `gcc`)
+- Mac OS X Public Beta through 10.1 (PowerPC; Apple `cc` 912+ (actually `gcc` 2.95.2))
+- NeXTSTEP 3.3 (68K; `cc` (actually `gcc` 2.5))
 
 ## Partially working configurations
 
