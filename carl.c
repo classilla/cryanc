@@ -8,7 +8,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#if !defined(__AUX__) && (!defined(NS_TARGET_MAJOR) || (NS_TARGET_MAJOR > 3))
+#if !defined(__AUX__) && (!defined(NS_TARGET_MAJOR) || (NS_TARGET_MAJOR > 3)) && !defined(__MACHTEN_68K__)
 #include <sys/select.h>
 #endif
 #include <netinet/in.h>
