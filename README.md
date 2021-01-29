@@ -78,6 +78,7 @@ These are attested to be working but are maintained by others.
 
 - Mac OS X Public Beta through 10.1 (PowerPC; Apple `cc` 912+ (actually `gcc` 2.95.2))
 - NeXTSTEP 3.3 (68K; `cc` (actually `gcc` 2.5))
+- Professional MachTen 2.3 (68K; `gcc` 2.7.2.f.1)
 
 ## Partially working configurations
 
