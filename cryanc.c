@@ -85,13 +85,20 @@
 /* SunOS 4 and Solaris 2+ */
 #if defined(sun) || defined(__sun)
 #if defined(__SVR4) || defined(__svr4__)
-/* Solaris */
-#warning compiling for Solaris
+/* Solaris is not officially supported yet */
+#warning compiling for Solaris - NOT YET SUPPORTED
 #else
-/* SunOS 4 or OS/MP: NOT YET WORKING */
-#warning compiling for SunOS 4 - NOT YET WORKING
-#include <varargs.h>
+/* SunOS 4 or OS/MP */
+#warning compiling for SunOS 4 and OS/MP
+#include <stdarg.h>
 #define NOT_POSIX 1
+/* clashes with qsort() */
+#define LTC_NO_PROTOTYPES 1
+/* pad libc a bit */
+void memmove(void *dest, void *src, int length) {
+	bcopy((char *)src, (char *)dest, length);
+}
+int raise(int sig) { return kill(getpid(), sig); }
 #endif
 #endif
 
