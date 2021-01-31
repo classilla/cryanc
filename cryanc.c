@@ -92,8 +92,8 @@
 #warning compiling for SunOS 4 and OS/MP
 #include <stdarg.h>
 #define NOT_POSIX 1
-/* clashes with qsort() */
-#define LTC_NO_PROTOTYPES 1
+#define LTC_NO_PROTOTYPES 1 /* clashes with qsort() */
+#define NO_FUNNY_ALIGNMENT 1 /* reacts badly to unaligned pointer access */
 /* pad libc a bit */
 void memmove(void *dest, void *src, int length) {
 	bcopy((char *)src, (char *)dest, length);
@@ -153,6 +153,14 @@ typedef unsigned long long u_int64_t;
 #define __BIG_ENDIAN__ 1
 #endif
 #define NOT_POSIX 1
+#endif
+
+#ifdef NO_FUNNY_ALIGNMENT
+void __short(void *where, unsigned int index, unsigned short value) {
+	char *p = (char *)where;
+	p[index] = value >> 8;
+	p[index+1] = (value & 0xff);
+}
 #endif
 
 /* Default: assume POSIX-SUS (current Linux and BSDs, etc.) */
@@ -39468,6 +39476,21 @@ struct TLSPacket *tls_create_packet(struct TLSContext *context, unsigned char ty
         packet->len = 5;
     packet->buf[0] = type;
 #ifdef WITH_TLS_13
+#if NO_FUNNY_ALIGNMENT
+    switch (version) {
+        case TLS_V13:
+            /* check if context is not null. If null, is a tls_export_context call */
+            if (context)
+                __short(packet->buf, 1, 0x0303);
+            else
+                __short(packet->buf, 1, version);
+            break;
+        case DTLS_V13:
+            __short(packet->buf, 1, DTLS_V13);
+            break;
+        default:
+            __short(packet->buf, 1, version);
+#else
     switch (version) {
         case TLS_V13:
             /* check if context is not null. If null, is a tls_export_context call */
@@ -39481,9 +39504,14 @@ struct TLSPacket *tls_create_packet(struct TLSContext *context, unsigned char ty
             break;
         default:
             *(unsigned short *)(packet->buf + 1) = htons(version);
+#endif
     }
 #else
+#if NO_FUNNY_ALIGNMENT
+    __short(packet->buf, 1, version);
+#else
     *(unsigned short *)(packet->buf + 1) = htons(version);
+#endif
 #endif
     return packet;
 }
@@ -39603,7 +39631,11 @@ void tls_packet_update(struct TLSPacket *packet) {
             uint64_t sequence_number;
 
             header_size = 13;
+#if NO_FUNNY_ALIGNMENT
+            __short(packet->buf, 3, packet->context->dtls_epoch_local);
+#else
             *(unsigned short *)(packet->buf + 3) = htons(packet->context->dtls_epoch_local);
+#endif
             sequence_number = packet->context->local_sequence_number;
             packet->buf[5] = (unsigned char)(sequence_number / 0x10000000000LL);
             sequence_number %= 0x10000000000LL;
@@ -39617,9 +39649,17 @@ void tls_packet_update(struct TLSPacket *packet) {
             sequence_number %= 0x100;
             packet->buf[10] = (unsigned char)sequence_number;
 
+#if NO_FUNNY_ALIGNMENT
+            __short(packet->buf, 11, (packet->len - header_size));
+#else
             *(unsigned short *)(packet->buf + 11) = htons(packet->len - header_size);
+#endif
         } else
+#if NO_FUNNY_ALIGNMENT
+            __short(packet->buf, 3, (packet->len - header_size));
+#else
             *(unsigned short *)(packet->buf + 3) = htons(packet->len - header_size);
+#endif
         if (packet->context) {
             if (packet->buf[0] != TLS_CHANGE_CIPHER)  {
                 if ((packet->buf[0] == TLS_HANDSHAKE) && (packet->len > header_size)) {
