@@ -111,17 +111,19 @@
 /* Solaris is not officially supported yet */
 #warning compiling for Solaris - NOT YET SUPPORTED
 #else
-/* SunOS 4 or OS/MP */
+/* SunOS 4 or OS/MP ... needs a LOT of help! */
 #warning compiling for SunOS 4 and OS/MP - NOT YET WORKING
 #include <stdarg.h>
 #define NOT_POSIX 1
 #define LTC_NO_PROTOTYPES 1 /* clashes with qsort() */
 #define NO_FUNNY_ALIGNMENT 1 /* reacts badly to unaligned pointer access */
+/* SunOS 4 realloc() doesn't work like other implementations */
+char *_crealloc(void *p, unsigned s) { return (p) ? realloc(p,s) : malloc(s); }
+#define TLS_REALLOC(p,s) _crealloc(p,s)
+#define XREALLOC _crealloc
 /* pad libc a bit */
-void memmove(void *dest, void *src, int length) {
-	bcopy((char *)src, (char *)dest, length);
-}
-int raise(int sig) { return kill(getpid(), sig); }
+#define memmove(d,s,l) (bcopy((char *)(s),(char *)(d),(l)))
+#define raise(s) (kill(getpid(),s))
 #endif
 #endif
 
@@ -3199,7 +3201,9 @@ extern "C" {
 /* default to libc stuff */
  #define XMALLOC     malloc
  #define XFREE       free
+#ifndef XREALLOC
  #define XREALLOC    realloc
+#endif
  #define XCALLOC     calloc
 #else
 /* prototypes for our heap functions */

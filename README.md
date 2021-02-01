@@ -66,7 +66,7 @@ Mach family:
 
 OpenSTEP 4.0 probably also works given that these all do.
 
-- IRIX (SGI MIPS; MIPSPro 7.4.4m `cc`). Older MIPSPro versions may work with `c99`.
+- IRIX 6.5 (SGI MIPS; MIPSPro 7.4.4m `cc`). Older MIPSPro versions may work with `c99`.
 
 - AIX 4+ (PowerPC, Power ISA; `gcc` 2.7.2.2 and 4.8). This is tested on 4.1.5 and 6.1, and should "just work" on 5L and 7.
 
@@ -85,7 +85,7 @@ These are attested to be working but are maintained by others.
 
 ## Partially working configurations
 
-- SunOS 4 (`gcc` 2.95.2). Requires fudging for unaligned pointers similar to IRIX, so this should work soon. Binary compatible (and in fact developed) on Solbourne OS/MP.
+- SunOS 4 (`gcc` 2.95.2). Requires fudging for unaligned pointers similar to IRIX and has some OS differences. Binary compatible (and in fact developed) on Solbourne OS/MP.
 
 ## Doesn't compile but planned
 

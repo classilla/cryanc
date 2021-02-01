@@ -8,7 +8,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#if !defined(__AUX__) && (!defined(NS_TARGET_MAJOR) || (NS_TARGET_MAJOR > 3)) && !defined(__MACHTEN_68K__)
+#if !defined(__AUX__) && (!defined(NS_TARGET_MAJOR) || (NS_TARGET_MAJOR > 3)) && !defined(__MACHTEN_68K__) && !defined(__sun)
 #include <sys/select.h>
 #endif
 #include <netinet/in.h>
@@ -252,13 +252,13 @@ int main(int argc, char *argv[]) {
             }
 
             fprintf(stderr, "unhandled character: %c\n", (char)c);
-            exit(255);
+            return 255;
         }
         
         /* at this point, we either have a complete 0.9 request, or a 1.0/1.1
            request with more bytes to follow. */
 
-        if (!strlen(method) || !strlen(purl)) exit(1);
+        if (!strlen(method) || !strlen(purl)) return 1;
 
         if (http09 && strcmp(method, "GET")) {
             fprintf(stdout, "Only GET is supported for HTTP/0.9\n");
@@ -427,7 +427,7 @@ int main(int argc, char *argv[]) {
     if (server == NULL) {
         if (proxy) error("Host not found");
         if (!quiet) fprintf(stderr, "host not found: %s\n", hostname);
-        exit(2);
+        return 2;
     }
     memset((char *) &serv_addr, 0, sizeof(serv_addr)); /* blocking socket */
     serv_addr.sin_family = AF_INET;
@@ -442,11 +442,11 @@ int main(int argc, char *argv[]) {
 
             if (socksproto != 1080) {
                 if (!quiet) fprintf(stderr, "unsupported proxy protocol\n");
-                exit(2);
+                return 2;
             }
             if (server->h_length != 4) {
                 if (!quiet) fprintf(stderr, "IPv6 not supported for SOCKS4\n");
-                exit(3);
+                return 3;
             }
 
             spacket[0] = 0x04; /* socks v4 */
@@ -463,7 +463,7 @@ int main(int argc, char *argv[]) {
             if (socksserver == NULL) {
                 if (!quiet) fprintf(stderr, "SOCKS proxy not found: %s\n",
                                             sockshost);
-                exit(2);
+                return 2;
             }
             memcpy((char *)&serv_addr.sin_addr.s_addr,
                    (char *)socksserver->h_addr, socksserver->h_length);
@@ -606,7 +606,12 @@ int main(int argc, char *argv[]) {
             /* service socket first, since we may still be setting up TLS */
             if (FD_ISSET(sockfd, &fdset)) {
                 if ((read_size = recv(sockfd, client_message, sizeof(client_message) , 0)) > 0) {
-                    tls_consume_stream(context, client_message, read_size, validate_certificate);
+                    int i = tls_consume_stream(context, client_message, read_size, validate_certificate);
+                    if (i < 0) {
+                        if (errno > 0) perror("tls_consume_stream");
+                        fprintf(stderr, "fatal TLS error: %d\n", i);
+                        return 255;
+                    }
                     https_send_pending(sockfd, context);
 
                     /* no point in anything further until TLS established */
