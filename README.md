@@ -66,6 +66,8 @@ Mach family:
 
 OpenSTEP 4.0 probably also works given that these all do.
 
+- IRIX (SGI MIPS; MIPSPro 7.4.4m `cc`). Older MIPSPro versions may work with `c99`, and `gcc` probably also works.
+
 - AIX 4+ (PowerPC, Power ISA; `gcc` 2.7.2.2 and 4.8). This is tested on 4.1.5 and 6.1, and should "just work" on 5L and 7.
 
 - A/UX 3.1 (68K; `gcc` 2.7.2.2, requires `-lbsd`)
@@ -82,11 +84,10 @@ These are attested to be working but are maintained by others.
 
 ## Partially working configurations
 
-- IRIX (SGI MIPS; MIPSPro 7.4 `c99` and `gcc` 9). Builds and unencrypted HTTP works but TLS segfaults due to issues with some codeblocks that cast byte arrays to `unsigned short`s using `htons()` and other such functions. This should be correctable, just tedious.
+- SunOS 4 (`gcc` 2.95.2). Has some similar problems to IRIX, so this is being worked on. Binary compatible (and in fact developed) on Solbourne OS/MP.
 
 ## Doesn't compile but planned
 
-- SunOS 4 (`gcc` 2.7). This requires changes to `libtomcrypt` to support older `varargs.h` variadic function prototypes but will likely get other very old systems working as well. Binary-compatible with Solbourne OS/MP.
 - Classic Mac OS (PowerPC with GUSI and MPW `gcc` 2.5). For full function this port would also need an `inetd`-like tool such as [ToolDaemon](https://github.com/fblondiau/ToolDaemon). For now, your best bet is to use Power MachTen.
 - Tru64. I've got a 164LX sitting here doing nothing ...
 
@@ -102,6 +103,11 @@ Once you figure out the secret sauce, we encourage you to put some additional bl
 into `cryanc.c` to get the right header files and compiler flags loaded. PRs accepted for 
 these as long as no presently working configuration is regressed. Similarly, we would
 love this to work on other compilers (right now it is terribly `gcc`-centric).
+
+A few architectures, especially old RISC, may not like the liberties taken
+with unaligned pointers. For these systems try `-DNO_FUNNY_ALIGNMENT=1`.
+However, this is not well tested, and we may not have smoked all of them out.
+Currently this define assumes big-endian.
 
 Some systems may be too slow for present-day server expectations and thus will appear
 not to function even if the library otherwise works correctly. Even built with `-O3`, our little NetBSD
@@ -149,7 +155,7 @@ singular *ancienne*, so there.
 
 Crypto Ancienne is released under the BSD license.
 
-Copyright (C) 2020 Cameron Kaiser. All rights reserved.
+Copyright (C) 2020-1 Cameron Kaiser and Contributors. All rights reserved.
 
 Based on TLSe. Copyright (C) 2016-2020 Eduard Suica. All rights reserved.
 

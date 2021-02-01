@@ -69,6 +69,10 @@
 #include <limits.h>
 #include <sys/time.h>
 
+/*****************************************************************************
+ Start of architecture-dependent recipes
+ ****************************************************************************/
+
 /* AIX: not compliant with SUS until 5L */
 #if defined(_AIX)
 #if defined(_AIX51)
@@ -82,6 +86,25 @@
 #endif
 #endif
 
+/* IRIX on MIPS (MIPSPro preferred, probably works with Nekoware gcc) */
+#if defined(sgi) || defined(__sgi)
+#warning compiling for IRIX on MIPS
+#ifdef __GNUC__
+#warning not tested on gcc
+#else
+#ifdef _SGI_COMPILER_VERSION
+#if (_SGI_COMPILER_VERSION < 744)
+#warning not tested on this version of MIPSPro, consider c99
+#endif
+#else
+#ifdef _COMPILER_VERSION
+#warning not tested on this version of MIPSPro, consider c99
+#endif
+#endif
+#endif
+#define NO_FUNNY_ALIGNMENT 1 /* reacts badly to unaligned pointer access */
+#endif
+
 /* SunOS 4 and Solaris 2+ */
 #if defined(sun) || defined(__sun)
 #if defined(__SVR4) || defined(__svr4__)
@@ -89,7 +112,7 @@
 #warning compiling for Solaris - NOT YET SUPPORTED
 #else
 /* SunOS 4 or OS/MP */
-#warning compiling for SunOS 4 and OS/MP
+#warning compiling for SunOS 4 and OS/MP - NOT YET WORKING
 #include <stdarg.h>
 #define NOT_POSIX 1
 #define LTC_NO_PROTOTYPES 1 /* clashes with qsort() */
@@ -155,7 +178,14 @@ typedef unsigned long long u_int64_t;
 #define NOT_POSIX 1
 #endif
 
+/*****************************************************************************
+ End of architecture-dependent recipes
+ ****************************************************************************/
+
 #ifdef NO_FUNNY_ALIGNMENT
+/* This essentially assumes big-endian, since this is largely an issue
+   only for old-sk00l RISC. See other places in this file. */
+#define __toshort(w,x) ((w[(x)] << 8) + (w[(x)+1]))
 void __short(void *where, unsigned int index, unsigned short value) {
 	char *p = (char *)where;
 	p[index] = value >> 8;
@@ -39850,7 +39880,13 @@ void tls_packet_update(struct TLSPacket *packet) {
                             } else
 #endif
                                 memcpy(ct, packet->buf, header_size - 2);
+#if NO_FUNNY_ALIGNMENT
+                            /* uggggh */
+                            ct[header_size - 2] = (ct_pos - header_size) >> 8;
+                            ct[header_size - 1] = (ct_pos - header_size) & 0xff;
+#else
                             *(unsigned short *)&ct[header_size - 2] = htons(ct_pos - header_size);
+#endif
                             TLS_FREE(packet->buf);
                             packet->buf = ct;
                             packet->len = ct_pos;
@@ -42467,7 +42503,11 @@ int tls_parse_hello(struct TLSContext *context, const unsigned char *buf, int bu
     CHECK_SIZE(bytes_to_follow, buf_len - res, TLS_NEED_MORE_DATA)
     
     CHECK_SIZE(2, buf_len - res, TLS_NEED_MORE_DATA)
+#if NO_FUNNY_ALIGNMENT
+    version = __toshort(buf, res);
+#else
     version = ntohs(*(unsigned short *)&buf[res]);
+#endif
     
     res += 2;
     VERSION_SUPPORTED(version, TLS_NOT_SAFE)
@@ -42550,7 +42590,11 @@ int tls_parse_hello(struct TLSContext *context, const unsigned char *buf, int bu
             }
         }
         CHECK_SIZE(2, buf_len - res, TLS_NEED_MORE_DATA)
+#if NO_FUNNY_ALIGNMENT
+        cipher_len = __toshort(buf, res);
+#else
         cipher_len = ntohs(*(unsigned short *)&buf[res]);
+#endif
         res += 2;
         CHECK_SIZE(cipher_len, buf_len - res, TLS_NEED_MORE_DATA)
         /* faster than cipher_len % 2 */
@@ -42603,20 +42647,30 @@ int tls_parse_hello(struct TLSContext *context, const unsigned char *buf, int bu
         unsigned short extension_type, extension_len;
 
         /* have extensions */
+#if NO_FUNNY_ALIGNMENT
+        extension_type = __toshort(buf, res);
+        res += 2;
+        extension_len = __toshort(buf, res);
+#else
         extension_type = ntohs(*(unsigned short *)&buf[res]);
         res += 2;
         extension_len = ntohs(*(unsigned short *)&buf[res]);
+#endif
         res += 2;
         DEBUG_PRINT3("Extension: 0x0%x (%i), len: %i\n", (int)extension_type, (int)extension_type, (int)extension_len);
         if (extension_len) {
             /* SNI extension */
             CHECK_SIZE(extension_len, buf_len - res, TLS_NEED_MORE_DATA)
             if (extension_type == 0x00) {
-#if(0)
+/* commented out originally
                 unsigned short sni_len = ntohs(*(unsigned short *)&buf[res]);
                 unsigned char sni_type = buf[res + 2];
-#endif
+*/
+#if NO_FUNNY_ALIGNMENT
+                unsigned short sni_host_len = __toshort(buf, (res + 3));
+#else
                 unsigned short sni_host_len = ntohs(*(unsigned short *)&buf[res + 3]);
+#endif
                 CHECK_SIZE(sni_host_len, buf_len - res - 5, TLS_NEED_MORE_DATA)
                 if (sni_host_len) {
                     TLS_FREE(context->sni);
@@ -43064,7 +43118,11 @@ const unsigned char *_private_tls_parse_signature(struct TLSContext *context, co
         *sign_algorithm = buf[res];
         res++;
     }
+#if NO_FUNNY_ALIGNMENT
+    size = __toshort(buf, res);
+#else
     size = ntohs(*(unsigned short *)&buf[res]);
+#endif
     res += 2;
     CHECK_SIZE(size, buf_len - res, NULL)
     DEBUG_DUMP_HEX(&buf[res], size);
@@ -43128,7 +43186,11 @@ int tls_parse_server_key_exchange(struct TLSContext *context, const unsigned cha
                 return 0;
             }
             CHECK_SIZE(3, buf_len - res, TLS_NEED_MORE_DATA);
+#if NO_FUNNY_ALIGNMENT
+            iana_n = __toshort(buf, res);
+#else
             iana_n = ntohs(*(unsigned short *)&buf[res]);
+#endif
             res += 2;
             key_size = buf[res];
             res++;
@@ -44042,7 +44104,11 @@ int tls_parse_message(struct TLSContext *context, unsigned char *buf, int buf_le
     
     type = *buf;
 
+#if NO_FUNNY_ALIGNMENT
+    version = __toshort(buf, buf_pos);
+#else
     version = ntohs(*(unsigned short *)&buf[buf_pos]);
+#endif
     buf_pos += 2;
 
     if (context->dtls) {
@@ -44052,7 +44118,11 @@ int tls_parse_message(struct TLSContext *context, unsigned char *buf, int buf_le
     }
 
     VERSION_SUPPORTED(version, TLS_NOT_SAFE)
+#if NO_FUNNY_ALIGNMENT
+    length = __toshort(buf, buf_pos);
+#else
     length = ntohs(*(unsigned short *)&buf[buf_pos]);
+#endif
     buf_pos += 2;
 
     ptr = buf + buf_pos;
@@ -45588,7 +45658,12 @@ int tls_consume_stream(struct TLSContext *context, const unsigned char *buf, int
     }
     while (tls_buffer_len >= 5) {
         int consumed;
+#if NO_FUNNY_ALIGNMENT
+        unsigned int length = tls_header_size +
+            __toshort(context->message_buffer, (index + tls_size_offset));
+#else
         unsigned int length = ntohs(*(unsigned short *)&context->message_buffer[index + tls_size_offset]) + tls_header_size;
+#endif
 
         if (length > tls_buffer_len) {
             DEBUG_PRINT2("NEED DATA: %i/%i\n", length, tls_buffer_len);
