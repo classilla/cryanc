@@ -66,7 +66,7 @@ Mach family:
 
 OpenSTEP 4.0 probably also works given that these all do.
 
-- IRIX (SGI MIPS; MIPSPro 7.4.4m `cc`). Older MIPSPro versions may work with `c99`, and `gcc` probably also works.
+- IRIX (SGI MIPS; MIPSPro 7.4.4m `cc`). Older MIPSPro versions may work with `c99`.
 
 - AIX 4+ (PowerPC, Power ISA; `gcc` 2.7.2.2 and 4.8). This is tested on 4.1.5 and 6.1, and should "just work" on 5L and 7.
 
@@ -81,10 +81,11 @@ These are attested to be working but are maintained by others.
 - Mac OS X Public Beta through 10.1 (PowerPC; Apple `cc` 912+ (actually `gcc` 2.95.2))
 - NeXTSTEP 3.3 (68K; `cc` (actually `gcc` 2.5))
 - Professional MachTen 2.3 (68K; `gcc` 2.7.2.f.1)
+- IRIX (SGI MIPS; `gcc` 9.2.0)
 
 ## Partially working configurations
 
-- SunOS 4 (`gcc` 2.95.2). Has some similar problems to IRIX, so this is being worked on. Binary compatible (and in fact developed) on Solbourne OS/MP.
+- SunOS 4 (`gcc` 2.95.2). Requires fudging for unaligned pointers similar to IRIX, so this should work soon. Binary compatible (and in fact developed) on Solbourne OS/MP.
 
 ## Doesn't compile but planned
 
