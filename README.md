@@ -74,6 +74,8 @@ OpenSTEP 4.0 probably also works given that these all do.
 
 - Power MachTen 4.1.4 (PowerPC; `gcc` 2.8.1; `setstackspace 1048576 /usr/bin/cpp` and `setstackspace 4194304 /usr/bin/as`)
 
+- SunOS 4.1 (SPARC; `gcc` 2.95.2). Binary compatible with Solbourne OS/MP. Tested on OS/MP 4.1C (SunOS 4.1.3).
+
 ## Working contributed configurations
 
 These are attested to be working but are maintained by others.
@@ -81,16 +83,13 @@ These are attested to be working but are maintained by others.
 - Mac OS X Public Beta through 10.1 (PowerPC; Apple `cc` 912+ (actually `gcc` 2.95.2))
 - NeXTSTEP 3.3 (68K; `cc` (actually `gcc` 2.5))
 - Professional MachTen 2.3 (68K; `gcc` 2.7.2.f.1)
-- IRIX (SGI MIPS; `gcc` 9.2.0)
-
-## Partially working configurations
-
-- SunOS 4 (`gcc` 2.95.2). Requires fudging for unaligned pointers similar to IRIX and has some OS differences. Binary compatible (and in fact developed) on Solbourne OS/MP.
+- IRIX 6.5 (SGI MIPS; `gcc` 9.2.0)
 
 ## Doesn't compile but planned
 
 - Classic Mac OS (PowerPC with GUSI and MPW `gcc` 2.5). For full function this port would also need an `inetd`-like tool such as [ToolDaemon](https://github.com/fblondiau/ToolDaemon). For now, your best bet is to use Power MachTen.
 - Tru64. I've got a 164LX sitting here doing nothing ...
+- Classic BeOS? I've got a 133MHz BeBox here that needs something to do too.
 
 ## Porting it to your favourite geriatric platform
 

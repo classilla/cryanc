@@ -112,8 +112,12 @@
 #warning compiling for Solaris - NOT YET SUPPORTED
 #else
 /* SunOS 4 or OS/MP ... needs a LOT of help! */
-#warning compiling for SunOS 4 and OS/MP - NOT YET WORKING
+#warning compiling for SunOS 4 and OS/MP
 #include <stdarg.h>
+/* Seems to lack the usual macros for endianness. */
+#ifndef __BIG_ENDIAN__
+#define __BIG_ENDIAN__ 1
+#endif
 #define NOT_POSIX 1
 #define LTC_NO_PROTOTYPES 1 /* clashes with qsort() */
 #define NO_FUNNY_ALIGNMENT 1 /* reacts badly to unaligned pointer access */
@@ -39830,7 +39834,11 @@ void tls_packet_update(struct TLSPacket *packet) {
                                 aad[8] = packet->buf[0];
                                 aad[9] = packet->buf[1];
                                 aad[10] = packet->buf[2];
+#if NO_FUNNY_ALIGNMENT
+                                __short(aad, 11, (packet->len - header_size));
+#else
                                 *((unsigned short *)(aad + 11)) = htons(packet->len - header_size);
+#endif
 #ifdef WITH_TLS_13
                             }
 #endif
@@ -44198,7 +44206,11 @@ int tls_parse_message(struct TLSContext *context, unsigned char *buf, int buf_le
 
                 memcpy(iv, context->crypto.ctx_remote_mac.remote_aead_iv, 4);
                 memcpy(iv + 4, buf + header_size, 8);
+#if NO_FUNNY_ALIGNMENT
+                __short(aad, 11, pt_length);
+#else
                 *((unsigned short *)(aad + 11)) = htons((unsigned short)pt_length);
+#endif
 #ifdef WITH_TLS_13
             }
 #endif
