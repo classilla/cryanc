@@ -14,10 +14,6 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 
-#if defined(__BEOS__)
-#define TIMESLICE 1000
-#endif
-
 #ifndef STDIN_FILENO
 #define STDIN_FILENO 0
 #endif
@@ -28,6 +24,31 @@
 int quiet = 0;
 int proxy = 0;
 int http09 = 0;
+
+#if defined(__BEOS__)
+/* ping-pong interval for semi-busy wait */
+#define TIMESLICE 1000
+
+/* BeOS is "special" with stdin, and select() doesn't work with it. */
+int stdin_pending() {
+    int i, j;
+    char c;
+
+    /* hack: don't check if we're not in proxy mode, we don't use it. */
+    if (!proxy) return 0;
+
+    if (isatty(fileno(stdin))) { /* XXX: doesn't seem to work right */
+        i = ioctl(0, 'ichr', &j);
+        return (i >= 0 && j > 0);
+    } else {
+        if (fread(&c, 1, 1, stdin)) {
+            if (ungetc(c, stdin) == c)
+                return 1;
+        }
+    }
+    return 0;
+}
+#endif
 
 void error(char *msg) {
     if (proxy) {
@@ -558,8 +579,7 @@ int main(int argc, char *argv[]) {
             tv.tv_sec = 0;
             tv.tv_usec = TIMESLICE;
             (void)select(sockfd + 1, &fdset, NULL, NULL, &tv); /* wait */
-            i = ioctl(0, 'ichr', &j);
-            if (i >= 0 && j > 0) {
+            if (stdin_pending()) {
 #endif
                 size_t buffer_index = 0;
 
@@ -686,8 +706,7 @@ int main(int argc, char *argv[]) {
 #if !defined(__BEOS__)
             if (FD_ISSET(STDIN_FILENO, &fdset) && sent) {
 #else
-            i = ioctl(0, 'ichr', &j);
-            if (i >= 0 && j > 0 && sent) {
+            if (stdin_pending() && sent) {
 #endif
                 size_t buffer_index = 0;
 

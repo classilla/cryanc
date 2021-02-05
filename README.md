@@ -85,11 +85,14 @@ These are attested to be working but are maintained by others.
 - Professional MachTen 2.3 (68K; `gcc` 2.7.2.f.1)
 - IRIX 6.5 (SGI MIPS; `gcc` 9.2.0)
 
+## Partially working configurations
+
+- BeOS R5 (PowerPC BeBox; `cc` (actually Metrowerks CodeWarrior `mwcc` 2.2)). Functions properly at optimization levels `-O2` and below (`-O3` miscompiles). Due to differences in the way BeOS treats standard input, reading proxy requests from the TTY doesn't currently work (it does from files). Should work with `x86` and Dano; may work with Haiku. Not tested with `gcc`.
+
 ## Doesn't compile but planned
 
 - Classic Mac OS (PowerPC with GUSI and MPW `gcc` 2.5). For full function this port would also need an `inetd`-like tool such as [ToolDaemon](https://github.com/fblondiau/ToolDaemon). For now, your best bet is to use Power MachTen.
 - Tru64. I've got a 164LX sitting here doing nothing ...
-- Classic BeOS? I've got a 133MHz BeBox here that needs something to do too.
 
 ## Porting it to your favourite geriatric platform
 
@@ -102,12 +105,16 @@ definitions. You may also need to add `-include stdarg.h` and other headers.
 Once you figure out the secret sauce, we encourage you to put some additional blocks
 into `cryanc.c` to get the right header files and compiler flags loaded. PRs accepted for 
 these as long as no presently working configuration is regressed. Similarly, we would
-love this to work on other compilers (right now it is terribly `gcc`-centric).
+love this to work on other compilers (right now it is terribly `gcc`-centric, though we do support Clang, MIPSPro and CodeWarrior).
 
 A few architectures, especially old RISC, may not like the liberties taken
 with unaligned pointers. For these systems try `-DNO_FUNNY_ALIGNMENT=1`.
 However, this is not well tested, and we may not have smoked all of them out.
 Currently this define assumes big-endian.
+
+Large local stack allocations are occasionally required for buffers. If your
+compiler doesn't like this, try `-DBIG_STRING_SIZE=xx`, substituting a
+smaller buffer size like 16384 or 4096.
 
 Some systems may be too slow for present-day server expectations and thus will appear
 not to function even if the library otherwise works correctly. Even built with `-O3`, our little NetBSD

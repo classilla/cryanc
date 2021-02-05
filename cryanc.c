@@ -112,9 +112,9 @@
 
 /* BeOS R5 (BeBox or GTFO) */
 #if defined(__BEOS__)
-#warning compiling for BeOS R5 - PARTIALLY WORKING
+#warning compiling for BeOS R5 - MOSTLY WORKING, see notes
 #if defined(__MWERKS__)
-#warning Metrowerks compiler detected
+#warning Metrowerks compiler detected - maximum optimization -O2
 /* mostly POSIX but not SUS */
 #define NOT_POSIX 1
 #include <stdarg.h>
