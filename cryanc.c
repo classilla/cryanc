@@ -61,7 +61,12 @@
 #endif
 #else
 /* hton* and ntoh* functions */
+#if defined(__BEOS__)
+/* weird */
+#include <netdb.h>
+#else
 #include <arpa/inet.h>
+#endif
 #include <unistd.h>
 #include <errno.h>
 #endif
@@ -103,6 +108,25 @@
 #endif
 #endif
 #define NO_FUNNY_ALIGNMENT 1 /* reacts badly to unaligned pointer access */
+#endif
+
+/* BeOS R5 (BeBox or GTFO) */
+#if defined(__BEOS__)
+#warning compiling for BeOS R5 - PARTIALLY WORKING
+#if defined(__MWERKS__)
+#warning Metrowerks compiler detected
+/* mostly POSIX but not SUS */
+#define NOT_POSIX 1
+#include <stdarg.h>
+#include <inttypes.h>
+#include <endian.h>
+/* Mwerks enforces a 32K function-local data limit which some functions hit */
+#define BIG_STRING_SIZE 0x1FFF
+/* pad libc */
+#define usleep(x) snooze(x)
+#else
+#warning this compiler is not supported
+#endif
 #endif
 
 /* SunOS 4 and Solaris 2+ */
@@ -187,6 +211,9 @@ typedef unsigned long long u_int64_t;
 /*****************************************************************************
  End of architecture-dependent recipes
  ****************************************************************************/
+#ifndef BIG_STRING_SIZE
+#define BIG_STRING_SIZE 0xFFFF
+#endif
 
 #ifdef NO_FUNNY_ALIGNMENT
 /* This essentially assumes big-endian, since this is largely an issue
@@ -212,7 +239,8 @@ void __short(void *where, unsigned int index, unsigned short value) {
 /* Sys-dep work arounds for old headers */
 
 /* provide definitions if we don't have stdint.h. */
-/* Rhapsody defines these somewhere else. */
+/* Mach and inttypes.h define these elsewhere. */
+#if !defined(_INTTYPES_H_)
 #if !defined(_MACHTYPES_H_)
 
    typedef signed char             int8_t;
@@ -253,6 +281,7 @@ void __short(void *where, unsigned int index, unsigned short value) {
 #if !defined(__APPLE_CC__) || (__APPLE_CC__ < 784)
    typedef int32_t                 intptr_t;
    typedef uint32_t                uintptr_t;
+#endif
 #endif
 #endif
 
@@ -46310,9 +46339,9 @@ int tls_make_ktls(struct TLSContext *context, int socket) {
 
 #ifdef DEBUG
 void tls_print_certificate(const char *fname) {
-    unsigned char buf[0xFFFF];
-    char out_buf[0xFFFF];
-    int size = _private_tls_read_from_file(fname, buf, 0xFFFF);
+    unsigned char buf[BIG_STRING_SIZE];
+    char out_buf[BIG_STRING_SIZE];
+    int size = _private_tls_read_from_file(fname, buf, BIG_STRING_SIZE);
     if (size > 0) {
         int idx = 0;
         unsigned int len;
@@ -46332,7 +46361,7 @@ void tls_print_certificate(const char *fname) {
             if (data != buf)
                 TLS_FREE(data);
             if (cert) {
-                fprintf(stderr, "%s", tls_certificate_to_string(cert, out_buf, 0xFFFF));
+                fprintf(stderr, "%s", tls_certificate_to_string(cert, out_buf, BIG_STRING_SIZE));
                 tls_destroy_certificate(cert);
             }
             if (data == buf)
@@ -46435,7 +46464,7 @@ int SSLv3_client_method() {
 
 int SSL_CTX_use_certificate_file(struct TLSContext *context, const char *filename, int dummy) {
     /* max 64k buffer */
-    unsigned char buf[0xFFFF];
+    unsigned char buf[BIG_STRING_SIZE];
     int size = _private_tls_read_from_file(filename, buf, sizeof(buf));
     if (size > 0)
         return tls_load_certificates(context, buf, size);
@@ -46443,7 +46472,7 @@ int SSL_CTX_use_certificate_file(struct TLSContext *context, const char *filenam
 }
 
 int SSL_CTX_use_PrivateKey_file(struct TLSContext *context, const char *filename, int dummy) {
-    unsigned char buf[0xFFFF];
+    unsigned char buf[BIG_STRING_SIZE];
     int size = _private_tls_read_from_file(filename, buf, sizeof(buf));
     if (size > 0)
         return tls_load_private_key(context, buf, size);
@@ -46606,7 +46635,7 @@ int _private_tls_safe_read(struct TLSContext *context, void *buffer, int buf_siz
 }
 
 int SSL_accept(struct TLSContext *context) {
-    unsigned char client_message[0xFFFF];
+    unsigned char client_message[BIG_STRING_SIZE];
     SSLUserData *ssl_data;
     int read_size = 0;
 
@@ -46636,7 +46665,7 @@ int SSL_connect(struct TLSContext *context) {
     SSLUserData *ssl_data;
     int res;
     int read_size;
-    unsigned char client_message[0xFFFF];
+    unsigned char client_message[BIG_STRING_SIZE];
 
     if (!context)
         return TLS_GENERIC_ERROR;
@@ -46712,7 +46741,7 @@ int SSL_read(struct TLSContext *context, void *buf, unsigned int len) {
         return TLS_GENERIC_ERROR;
     
     if (!context->application_buffer_len) {
-        unsigned char client_message[0xFFFF];
+        unsigned char client_message[BIG_STRING_SIZE];
         /* accept */
         int read_size;
         while ((read_size = _private_tls_safe_read(context, (char *)client_message, sizeof(client_message))) > 0) {

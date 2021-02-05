@@ -8,11 +8,15 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#if !defined(__AUX__) && (!defined(NS_TARGET_MAJOR) || (NS_TARGET_MAJOR > 3)) && !defined(__MACHTEN_68K__) && !defined(__sun)
+#if !defined(__AUX__) && (!defined(NS_TARGET_MAJOR) || (NS_TARGET_MAJOR > 3)) && !defined(__MACHTEN_68K__) && !defined(__sun) && !defined(__BEOS__)
 #include <sys/select.h>
 #endif
 #include <netinet/in.h>
 #include <netdb.h> 
+
+#if defined(__BEOS__)
+#define TIMESLICE 1000
+#endif
 
 #ifndef STDIN_FILENO
 #define STDIN_FILENO 0
@@ -175,12 +179,16 @@ int main(int argc, char *argv[]) {
     struct hostent *server, *socksserver;
     fd_set fdset;
     char hostname[256], sockshost[256], *buffer;
-    unsigned char read_buffer[0xffff];
-    unsigned char client_message[8192];
+    unsigned char read_buffer[BIG_STRING_SIZE];
+    unsigned char client_message[16384];
     int read_size;
     int sent = 0, arg = 0, head_only = 0, with_headers = 0, upgrayedd = 0;
     char *path = NULL, *url = NULL, *proxyurl = NULL;
     struct TLSContext *context;
+#if defined(__BEOS__)
+    struct timeval tv;
+    int i, j;
+#endif
 
     proxyurl = getenv("ALL_PROXY");
 
@@ -534,18 +542,28 @@ int main(int argc, char *argv[]) {
 
     if (proto == 80) {
         for(;;) {
+            if (!forever) (void)alarm(10);
             FD_ZERO(&fdset);
             FD_SET(sockfd, &fdset);
-            FD_SET(STDIN_FILENO, &fdset);
 
-            if (!forever) (void)alarm(10);
+#if !defined(__BEOS__)
+            FD_SET(STDIN_FILENO, &fdset);
             (void)select(sockfd + 1, &fdset, NULL, NULL, NULL); /* wait */
 
             /* send any post-headers data, like POST forms, etc. */
             if (FD_ISSET(STDIN_FILENO, &fdset)) {
+#else
+            /* In BeOS and Win32 select() only works on sockets, not on
+               standard file handles, so we must ping-pong. */
+            tv.tv_sec = 0;
+            tv.tv_usec = TIMESLICE;
+            (void)select(sockfd + 1, &fdset, NULL, NULL, &tv); /* wait */
+            i = ioctl(0, 'ichr', &j);
+            if (i >= 0 && j > 0) {
+#endif
                 size_t buffer_index = 0;
 
-                read_size = fread(read_buffer, 1, 0xffff, stdin);
+                read_size = fread(read_buffer, 1, BIG_STRING_SIZE, stdin);
                 while (read_size) {
                     int res = send(sockfd, (char *)&read_buffer[buffer_index],
                                    read_size, 0);
@@ -596,12 +614,17 @@ int main(int argc, char *argv[]) {
         }
     } else if (proto == 443) {
         for(;;) {
+            if (!forever) (void)alarm(10);
             FD_ZERO(&fdset);
             FD_SET(sockfd, &fdset);
+#if !defined(__BEOS__)
             FD_SET(STDIN_FILENO, &fdset);
-
-            if (!forever) (void)alarm(10);
             (void)select(sockfd + 1, &fdset, NULL, NULL, NULL); /* wait */
+#else
+            tv.tv_sec = 0;
+            tv.tv_usec = TIMESLICE;
+            (void)select(sockfd + 1, &fdset, NULL, NULL, &tv); /* wait */
+#endif
 
             /* service socket first, since we may still be setting up TLS */
             if (FD_ISSET(sockfd, &fdset)) {
@@ -623,7 +646,7 @@ int main(int argc, char *argv[]) {
                         https_send_pending(sockfd, context);
                         sent = 1;
                     }
-                    read_size = tls_read(context, read_buffer, 0xFFFF - 1);
+                    read_size = tls_read(context, read_buffer, BIG_STRING_SIZE - 1);
                     bytesread += read_size;
                     if (read_size) {
                         if (!with_headers) {
@@ -661,13 +684,18 @@ int main(int argc, char *argv[]) {
             }
 
             /* send any post-headers data, like POST forms, etc. */
+#if !defined(__BEOS__)
             if (FD_ISSET(STDIN_FILENO, &fdset) && sent) {
+#else
+            i = ioctl(0, 'ichr', &j);
+            if (i >= 0 && j > 0 && sent) {
+#endif
                 size_t buffer_index = 0;
 
                 /* no point until TLS is established */
                 if (!tls_established(context)) continue;
 
-                read_size = fread(read_buffer, 1, 0xffff, stdin);
+                read_size = fread(read_buffer, 1, BIG_STRING_SIZE, stdin);
                 tls_write(context, (unsigned char *)read_buffer, read_size);
                 https_send_pending(sockfd, context);
             }
@@ -676,9 +704,9 @@ int main(int argc, char *argv[]) {
 
     if (!bytesread) {
         if (proto == 443 && context->error_code) {
-            (void)sprintf(read_buffer,
+            (void)sprintf((char *)read_buffer,
                           "TLS alert received: %d\n", context->error_code);
-            error(read_buffer);
+            error((char *)read_buffer);
         }
         error("No data received");
     }
