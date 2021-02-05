@@ -180,7 +180,7 @@ int main(int argc, char *argv[]) {
     fd_set fdset;
     char hostname[256], sockshost[256], *buffer;
     unsigned char read_buffer[BIG_STRING_SIZE];
-    unsigned char client_message[16384];
+    unsigned char client_message[8192];
     int read_size;
     int sent = 0, arg = 0, head_only = 0, with_headers = 0, upgrayedd = 0;
     char *path = NULL, *url = NULL, *proxyurl = NULL;
@@ -646,9 +646,8 @@ int main(int argc, char *argv[]) {
                         https_send_pending(sockfd, context);
                         sent = 1;
                     }
-                    read_size = tls_read(context, read_buffer, BIG_STRING_SIZE - 1);
-                    bytesread += read_size;
-                    if (read_size) {
+                    while (read_size = tls_read(context, read_buffer, BIG_STRING_SIZE - 1)) {
+                        bytesread += read_size;
                         if (!with_headers) {
                             size_t i = 0;
 
