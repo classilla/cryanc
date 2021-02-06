@@ -85,10 +85,11 @@ These are attested to be working but are maintained by others.
 - NeXTSTEP 3.3 (68K; `cc` (actually `gcc` 2.5))
 - Professional MachTen 2.3 (68K; `gcc` 2.7.2.f.1)
 - IRIX 6.5 (SGI MIPS; `gcc` 9.2.0)
+- Haiku R1/beta2 (`x86_64`; `gcc` 8.3.0, requires `-lnetwork`)
 
 ## Partially working configurations
 
-- BeOS R5 (PowerPC BeBox; `cc` (actually Metrowerks CodeWarrior `mwcc` 2.2)). Functions properly at optimization levels `-O2` and below (`-O3` miscompiles). Due to differences in the way BeOS treats standard input, reading proxy requests from the TTY doesn't currently work (it does from files). Should work with `x86` and Dano; may work with Haiku. Not tested with `gcc`.
+- BeOS R5 (PowerPC BeBox; `cc` (actually Metrowerks CodeWarrior `mwcc` 2.2)). Functions properly at optimization levels `-O2` and below (`-O3` miscompiles). Due to differences in the way BeOS treats standard input, reading proxy requests from the TTY doesn't currently work (it does from files). Should work with `x86` and Dano. Not tested with `gcc`.
 
 ## Doesn't compile but planned
 
