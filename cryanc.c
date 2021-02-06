@@ -89,6 +89,9 @@
 #include <stdarg.h>
 #define NOT_POSIX 1
 #endif
+#if defined(__ibmxl__)
+#warning not tested with xlc
+#endif
 #endif
 
 /* IRIX on MIPS (MIPSPro preferred, probably works with Nekoware gcc) */
@@ -163,6 +166,23 @@ char *_crealloc(void *p, unsigned s) { return (p) ? realloc(p,s) : malloc(s); }
 /* /usr/macppc/include/machine/types.h is incomplete */
 typedef long long int64_t;
 typedef unsigned long long u_int64_t;
+#endif
+
+/* Tru64 on Alpha, may also work for old-sk00l Digital UNIX or OSF/1 */
+#if defined (__digital__) && defined (__unix__)
+#warning compiling for Tru64
+#if defined (__alpha) && defined (__DECC)
+#warning DEC/Compaq C compiler on Alpha - must compile with -misalign
+/* mostly POSIX but not SUS */
+#define NOT_POSIX 1
+#define __WCHAR_TYPE__ 1 /* seems to already have it */
+#define NO_FUNNY_ALIGNMENT 1 /* what a surprise, Alpha hates unaligned ptrs */
+/* still, we must have missed some somewhere ... */
+#include <stdarg.h>
+#include <inttypes.h>
+#else
+#warning unsupported configuration
+#endif
 #endif
 
 /* Distinguish NeXTSTEP/OpenSTEP from Rhapsody and from Mac OS X */
@@ -240,7 +260,7 @@ void __short(void *where, unsigned int index, unsigned short value) {
 
 /* provide definitions if we don't have stdint.h. */
 /* Mach and inttypes.h define these elsewhere. */
-#if !defined(_INTTYPES_H_)
+#if !defined(_INTTYPES_H_) && !defined(_INTTYPES_H)
 #if !defined(_MACHTYPES_H_)
 
    typedef signed char             int8_t;

@@ -62,6 +62,7 @@ Mach family:
 
 - Mac OS X 10.2 through at least 10.14 (PowerPC, `i386`, `x86_64`; Xcode `gcc` 3.3+ or `clang`)
 - Mac OS X Server v1.2/Rhapsody 5.6 (PowerPC; `cc` (actually `gcc` 2.7.2.1))
+- Tru64 5.1B (Alpha; `cc` (actually Compaq C V6.5)). Must compile with `-misalign`.
 - NeXTSTEP 3.3 (HP PA-RISC; `cc` (actually `gcc` 2.5))
 
 OpenSTEP 4.0 probably also works given that these all do.
@@ -92,25 +93,28 @@ These are attested to be working but are maintained by others.
 ## Doesn't compile but planned
 
 - Classic Mac OS (PowerPC with GUSI and MPW `gcc` 2.5). For full function this port would also need an `inetd`-like tool such as [ToolDaemon](https://github.com/fblondiau/ToolDaemon). For now, your best bet is to use Power MachTen.
-- Tru64. I've got a 164LX sitting here doing nothing ...
+- It should be possible to port to Win32 with something like `mxe`; there are hooks for it in TLSe already.
 
 ## Porting it to your favourite geriatric platform
 
-Most other platforms with `gcc` 2.5 or higher and support for 64-bit ints
+Most other platforms with `gcc` 2.5 or higher, support for 64-bit ints
 (usually `long long`) and `stdarg.h` should "just work."
 
 If your system lacks `stdint.h`, you can try using `-DNOT_POSIX=1` to use the built-in
-definitions. You may also need to add `-include stdarg.h` and other headers.
+definitions. You may also need to add `-include stdarg.h` and other headers. Consider
+compiling with `-DDEBUG` if you get crashes so you can see where it dies (it's also
+a neat way to see TLS under the hood).
 
 Once you figure out the secret sauce, we encourage you to put some additional blocks
 into `cryanc.c` to get the right header files and compiler flags loaded. PRs accepted for 
 these as long as no presently working configuration is regressed. Similarly, we would
-love this to work on other compilers (right now it is terribly `gcc`-centric, though we do support Clang, MIPSPro and CodeWarrior).
+love to further expand our compiler support, though we now support quite a few.
 
 A few architectures, especially old RISC, may not like the liberties taken
 with unaligned pointers. For these systems try `-DNO_FUNNY_ALIGNMENT=1`.
-However, this is not well tested, and we may not have smoked all of them out.
-Currently this define assumes big-endian.
+However, this is not well tested, and we may not have smoked all of them out
+(for example, it's not good enough for DEC Alpha on Tru64, the king of alignment-finicky
+configurations, and we still have to compile with `-misalign`). Currently this define assumes big-endian.
 
 Large local stack allocations are occasionally required for buffers. If your
 compiler doesn't like this, try `-DBIG_STRING_SIZE=xx`, substituting a
