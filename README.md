@@ -37,6 +37,8 @@ In addition, `carl`, the included `curl`-like utility and the Cryanc example app
 - SOCKSv4 client support (keep your Old Ones behind a firewall, they tend to cause mental derangement in weaker humans)
 - HTTP and HTTPS proxy feature with similarly ancient browsers that do not insist on using `CONNECT` (requires `inetd` or `inetd`-like connecting piece such as [`micro_inetd`](https://acme.com/software/micro_inetd/))
 
+See the `carl` manual page in this repo for more (in `man` and Markdown format).
+
 ## Not yet supported but coming soon
 
 **Don't file issues about these.** If you do, they will be closed as "user doesn't read
@@ -56,7 +58,7 @@ These are all acknowledged limitations in TLSe and should improve as upstream do
 These are tested using `carl`, which is the included example. Most configurations can build simply with `gcc -O3 -o carl carl.c`. The magic for operating system support is almost all in `cryanc.c`.
 
 - Linux (`gcc`). This is tested on `ppc64le` but pretty much any architecture should work.
-- NetBSD (`gcc`). Ditto, and probably works on most other BSDs. If someone wants to give this a whack on 4.4BSD I would be highly amused.
+- NetBSD (`gcc`). Ditto, and probably works on most other BSDs. If someone wants to give this a whack on 4.4BSD or Ultrix I would be highly amused.
 
 Mach family:
 
@@ -64,16 +66,15 @@ Mach family:
 - Mac OS X Server v1.2/Rhapsody 5.6 (PowerPC; `cc` (actually `gcc` 2.7.2.1))
 - Tru64 5.1B (Alpha; `cc` (actually Compaq C V6.5)). Must compile with `-misalign`.
 - NeXTSTEP 3.3 (HP PA-RISC; `cc` (actually `gcc` 2.5))
+- Power MachTen 4.1.4 (PowerPC; `gcc` 2.8.1; `setstackspace 1048576 /usr/bin/cpp` and `setstackspace 4194304 /usr/bin/as`)
 
 OpenSTEP 4.0 probably also works given that these all do.
 
-- IRIX 6.5 (SGI MIPS; MIPSPro 7.4.4m `cc`). Older MIPSPro versions may work with `c99`.
+- IRIX 6.5.30 (SGI MIPS; MIPSPro 7.4.4m `cc`). For 6.5.22, you may need to use `c99` (older MIPSPro versions may also work with `c99`).
 
 - AIX 4+ (PowerPC, Power ISA; `gcc` 2.7.2.2 and 4.8). This is tested on 4.1.5 and 6.1, and should "just work" on 5L and 7.
 
 - A/UX 3.1 (68K; `gcc` 2.7.2.2, requires `-lbsd`)
-
-- Power MachTen 4.1.4 (PowerPC; `gcc` 2.8.1; `setstackspace 1048576 /usr/bin/cpp` and `setstackspace 4194304 /usr/bin/as`)
 
 - SunOS 4.1 (SPARC; `gcc` 2.95.2). Binary compatible with Solbourne OS/MP. Tested on OS/MP 4.1C (SunOS 4.1.3).
 
@@ -90,10 +91,12 @@ These are attested to be working but are maintained by others.
 
 - BeOS R5 (PowerPC BeBox; `cc` (actually Metrowerks CodeWarrior `mwcc` 2.2)). Functions properly at optimization levels `-O2` and below (`-O3` miscompiles). Due to differences in the way BeOS treats standard input, reading proxy requests from the TTY doesn't currently work (it does from files). Should work with `x86` and Dano; may work with Haiku. Not tested with `gcc`.
 
-## Doesn't compile but planned
+## Not tested or not working but might in the future
 
 - Classic Mac OS (PowerPC with GUSI and MPW `gcc` 2.5). For full function this port would also need an `inetd`-like tool such as [ToolDaemon](https://github.com/fblondiau/ToolDaemon). For now, your best bet is to use Power MachTen.
 - It should be possible to port to Win32 with something like `mxe`; there are hooks for it in TLSe already.
+- Solaris 2+ should work now that SunOS 4 does.
+- HP-UX. We have 8.0 on 68K and 11i on PA-RISC locally.
 
 ## Porting it to your favourite geriatric platform
 
@@ -111,18 +114,19 @@ these as long as no presently working configuration is regressed. Similarly, we 
 love to further expand our compiler support, though we now support quite a few.
 
 A few architectures, especially old RISC, may not like the liberties taken
-with unaligned pointers. For these systems try `-DNO_FUNNY_ALIGNMENT=1`.
+with unaligned pointers. For these systems try `-DNO_FUNNY_ALIGNMENT`.
 However, this is not well tested, and we may not have smoked all of them out
 (for example, it's not good enough for DEC Alpha on Tru64, the king of alignment-finicky
 configurations, and we still have to compile with `-misalign`). Currently this define assumes big-endian.
 
-Large local stack allocations are occasionally required for buffers. If your
-compiler doesn't like this, try `-DBIG_STRING_SIZE=xx`, substituting a
-smaller buffer size like 16384 or 4096.
+Large local stack allocations are occasionally used for buffering efficiency.
+If your compiler doesn't like this (Metrowerks comes to mind), try
+`-DBIG_STRING_SIZE=xx`, substituting a smaller buffer size like 16384 or 4096.
 
 Some systems may be too slow for present-day server expectations and thus will appear
-not to function even if the library otherwise works correctly. Even built with `-O3`, our little NetBSD
-Macintosh IIci with a 25MHz 68030 and no L1 card took 22 seconds
+not to function even if the library otherwise works correctly. In our testing this starts to become
+a problem for CPUs slower than 40MHz or so, regardless of architecture. Even built with `-O3`, our little NetBSD
+Macintosh IIci with a 25MHz 68030 and no L2 card took 22 seconds
 (give `carl` the `-t` option to
 disable timeouts) for a single short TLS 1.2
 transaction to a local test server; a number of Internet hosts we tested it with simply cut the

@@ -1,6 +1,6 @@
 /*
  * Crypto Ancienne Resource Loader "carl" (and example application)
- * Copyright 2020 Cameron Kaiser. All rights reserved.
+ * Copyright 2020-1 Cameron Kaiser. All rights reserved.
  * BSD license (see README.md)
  */
 
@@ -50,24 +50,23 @@ int stdin_pending() {
 }
 #endif
 
-void error(char *msg) {
+void error(char *msg, int code) {
     if (proxy) {
         if (!http09)
             fprintf(stdout, "HTTP/1.0 502 Proxy Error\r\n"
                             "Content-type: text/html\r\n\r\n");
         fprintf(stdout, "%s\n", msg);
-        exit(255);
+        exit(code);
     }
 
     if (!quiet) {
         if (errno > 0) perror(msg); else fprintf(stdout, "%s\n", msg);
     }
-    exit(255);
+    exit(code);
 }
 
 void timeout() { /* portable enough */
-    if (quiet) exit(254);
-    error("Timeout");
+    error("Timeout", 254);
 }
 
 int https_send_pending(int client_sock, struct TLSContext *context) {
@@ -173,11 +172,11 @@ char *parse_url(char *url, char *hostname, size_t *port, size_t *proto) {
 }
 
 void help(int longdesc, char *me) {
-    fprintf(stderr, "Crypto Ancienne Resource Loader v1.0\n");
+    fprintf(stderr, "Crypto Ancienne Resource Loader v1.5\n");
     if (!longdesc) return;
 
     fprintf(stderr,
-"Copyright (C)2020 Cameron Kaiser. All rights reserved.\n"
+"Copyright (C)2020-1 Cameron Kaiser and Contributors. All rights reserved.\n"
 "usage: %s [option] [url (optional if -p)]\n\n"
 "protocols: http https\n\n"
 "-h This message\n"
@@ -185,6 +184,7 @@ void help(int longdesc, char *me) {
 "-p Proxy mode (accepts HTTP client request on stdin, ignores -i -q -H)\n"
 "   If url is also specified, it may be a socks:// URL only\n"
 "-H HEAD request (default is GET)\n"
+"-N Ignore ALL_PROXY environment variable\n"
 "-q Emit no errors, only status code\n"
 "-i Dump both headers and body (default is body only, irrelevant if -H or -p)\n"
 "-t No timeout (default is 10s)\n"
@@ -229,6 +229,7 @@ int main(int argc, char *argv[]) {
         if (strchr(argv[arg], 'h')) { help(1, argv[0]); return 0; }
         if (strchr(argv[arg], 'i')) { with_headers = 1; }
         if (strchr(argv[arg], 'H')) { head_only = 1; with_headers = 1; }
+        if (strchr(argv[arg], 'N')) { proxyurl = NULL; }
         if (strchr(argv[arg], 'u')) { upgrayedd = 1; }
         if (strchr(argv[arg], 's')) { spoof10 = 1; }
         if (strchr(argv[arg], 't')) { forever = 1; }
@@ -290,18 +291,19 @@ int main(int argc, char *argv[]) {
         if (!strlen(method) || !strlen(purl)) return 1;
 
         if (http09 && strcmp(method, "GET")) {
+            /* handle specially */
             fprintf(stdout, "Only GET is supported for HTTP/0.9\n");
             return 1;
         }
         if (!strcmp(method, "CONNECT")) {
-            error("CONNECT is not supported by this proxy");
+            error("CONNECT is not supported by this proxy", 1);
         }
 
         if (!(path = parse_url(purl, hostname, &portno, &proto))) {
-            error("Did not understand URL");
+            error("Did not understand URL", 1);
         }
         if (proto != 80 && proto != 443) {
-            error("Unsupported protocol");
+            error("Unsupported protocol", 1);
         }
 
         if (upgrayedd && proto == 80) {
@@ -451,10 +453,10 @@ int main(int argc, char *argv[]) {
     
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) 
-        error("socket");
+        error("socket", 255);
     server = gethostbyname(hostname);
     if (server == NULL) {
-        if (proxy) error("Host not found");
+        if (proxy) error("Host not found", 2);
         if (!quiet) fprintf(stderr, "host not found: %s\n", hostname);
         return 2;
     }
@@ -471,7 +473,7 @@ int main(int argc, char *argv[]) {
 
             if (socksproto != 1080) {
                 if (!quiet) fprintf(stderr, "unsupported proxy protocol\n");
-                return 2;
+                return 1;
             }
             if (server->h_length != 4) {
                 if (!quiet) fprintf(stderr, "IPv6 not supported for SOCKS4\n");
@@ -499,11 +501,11 @@ int main(int argc, char *argv[]) {
             serv_addr.sin_port = htons(socksport);
             if (connect(sockfd,(struct sockaddr *)&serv_addr,
                         sizeof(serv_addr)) < 0) 
-                error("connect to SOCKS");
+                error("connect to SOCKS", 4);
 
             /* we should be able to send this much without blocking */
             if (send(sockfd, spacket, 9, 0) != 9)
-                error("send to SOCKS");
+                error("send to SOCKS", 4);
 
             while ((read_size = recv(sockfd, (char *)&spacket[sbytes],
                                      9-sbytes, 0)) > 0) {
@@ -513,18 +515,16 @@ int main(int argc, char *argv[]) {
 
             if (sbytes != 8 || spacket[0] != 0x00 ||
                     spacket[1] < 0x5a || spacket[1] > 0x5d) {
-                error("SOCKS connect failed");
-                return 1;
+                error("SOCKS connect failed", 5);
             }
             if (spacket[1] != 0x5a) {
-                if (proxy) error("SOCKS connect failed");
+                if (proxy) error("SOCKS connect failed", 5);
                 if (!quiet) fprintf(stderr, "SOCKS connect: %i\n", spacket[1]);
-                return 1;
+                return 5;
             }
             proxycon = 1;
         } else {
-            error("illegal proxy URL");
-            return 1;
+            error("illegal proxy URL", 1);
         }
     }
 
@@ -534,14 +534,14 @@ int main(int argc, char *argv[]) {
         memcpy((char *)&serv_addr.sin_addr.s_addr, (char *)server->h_addr, server->h_length);
         serv_addr.sin_port = htons(portno);
         if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0) 
-           error("connect");
+           error("connect", 5);
     }
 
     /* set up http or tls */
 
     if (proto == 443) {
         context = tls_create_context(0, TLS_V12);
-        if (!tls_sni_set(context, hostname)) error("TLS context failure");
+        if (!tls_sni_set(context, hostname)) error("TLS context failure", 255);
         tls_client_connect(context);
         https_send_pending(sockfd, context);
     } else {
@@ -652,8 +652,8 @@ int main(int argc, char *argv[]) {
                     int i = tls_consume_stream(context, client_message, read_size, validate_certificate);
                     if (i < 0) {
                         if (errno > 0) perror("tls_consume_stream");
-                        fprintf(stderr, "fatal TLS error: %d\n", i);
-                        return 255;
+                        if (!quiet) fprintf(stderr, "fatal TLS error: %d\n", i);
+                        return 6;
                     }
                     https_send_pending(sockfd, context);
 
@@ -724,9 +724,9 @@ int main(int argc, char *argv[]) {
         if (proto == 443 && context->error_code) {
             (void)sprintf((char *)read_buffer,
                           "TLS alert received: %d\n", context->error_code);
-            error((char *)read_buffer);
+            error((char *)read_buffer, 6);
         }
-        error("No data received");
+        error("No data received", 253);
     }
     free(buffer);
     return 0;

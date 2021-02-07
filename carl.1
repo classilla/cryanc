@@ -1,0 +1,237 @@
+.TH carl 1 "Crypto Ancienne"
+
+.SH NAME
+carl \- Crypto Ancienne Resource Loader
+
+.SH SYNOPSIS
+.B carl
+.RI [ options ]
+\fIurl\fR
+
+.SH DESCRIPTION
+.B carl
+is both a demonstration application for the Crypto Ancienne TLS library and a utility reminiscent of the much more comprehensive
+.BR curl (1),
+of which its name is a desperate pun. It may also be more suitable as a
+.BR curl (1)
+substitute for the older systems that Crypto Ancienne caters to, since
+it has no prerequisites other than a compatible C compiler.
+.LP
+Like its inspiration,
+.B carl
+fetches URLs, emitting them to standard output. However,
+.B carl
+only supports HTTP and HTTPS (and only HTTP/0.9, HTTP/1.0 and HTTP/1.1), although it will also parse SOCKS URLs and use them as proxies (see
+.BR ENVIRONMENT ).
+.LP
+.B carl
+can also accept complete
+HTTP and HTTPS requests over standard input (see
+.B PROXY
+.BR MODE ).
+If connected to
+.BR inetd (8)
+or a similar utility, this can act as a complete proxy solution, including for some browsers which may not speak HTTPS or
+current TLS versions themselves but can be trained or tricked to send requests for
+.B https://
+URLs to it.
+
+.SH OPTIONS
+In general, options do not match
+.BR curl (1)'s.
+.LP
+.TP
+.B \-q
+Quiet mode; no verbose errors are displayed (see
+.B EXIT
+.BR STATUS ).
+.TP
+.B \-t
+Disable timeouts. Otherwise, transactions that take longer than 10 seconds are aborted. Necessary for slower systems that may not negotiate TLS quickly enough.
+.TP
+.B \-H
+Use
+.B HEAD
+as the request method instead of
+.BR GET .
+In this mode, HTTP(S) headers are displayed automatically, along with any residual message body that may be transmitted by some servers. Other methods such as
+.B POST
+must be specified as proxy requests (i.e., sent over standard input when
+.B \-p
+is specified).
+.TP
+.B \-i
+Dump both headers and body, even if
+.B \-H
+isn't specified. Irrelevant in proxy mode (when
+.B \-p
+is specified).
+.TP
+.B \-N
+Ignore the
+.B ALL_PROXY
+environment variable, if it exists (see
+.BR ENVIRONMENT ).
+.TP
+.B \-u
+Treat all HTTP URLs as HTTPS, even if they are specified as HTTP. This includes URLs received in proxy mode (when
+.B \-p
+is specified).
+.TP
+.B \-s
+Downgrade HTTP/1.1 replies to HTTP/1.0 for consumers or clients which are intolerant. Irrelevant if headers are not displayed (i.e., without
+.BR \-H ,
+.BR \-p
+or
+.BR \-i ).
+.TP
+.B \-p
+Enables proxy mode (see
+.B PROXY
+.BR MODE ).
+.BR \-i ,
+.BR \-q ,
+and
+.BR \-H ,
+if they are specified, are ignored. If a URL is provided, it may only be a
+.B socks://
+or
+.B socks5://
+URL, which is used as a SOCKS proxy for
+.B carl
+to relay through (see the
+.B ALL_PROXY
+environment variable in
+.BR ENVIRONMENT ).
+.TP
+.B \-v
+Display version string (the same as the main library).
+.TP
+.B \-h
+Display a synopsis of these options.
+
+.SH "PROXY MODE"
+If the
+.B \-p
+option is specified,
+.B carl
+will accept a full proxy client request for an
+.B http://
+or
+.B https://
+URL from standard input. It must be formatted as a standard HTTP proxy request with method
+and fully-specified URL minimally compliant to RFC 7230, though
+.B carl
+is tolerant, and will quietly adjust client requests as needed or requested (see also the
+.B \-u
+and
+.B \-s
+options). A full HTTP reply with all remote headers will be sent in response.
+.LP
+The request must be delimited by the standard two-CRLF separator. If the method is intended to send data to the server, such as
+.BR POST ,
+the payload may trail the request headers after it.
+.B carl
+does no encoding of this data; your application must do that itself.
+.LP
+In proxy mode, the \fIurl\fR argument may only be used to specify a SOCKS proxy through which the request will be forwarded. If the
+.B ALL_PROXY
+environment variable exists, specifying a SOCKS URL on the command line will override it (or use
+.B -N
+to ignore it; see
+.BR ENVIRONMENT ).
+Otherwise,
+.B carl
+will connect directly.
+.LP
+The
+.B CONNECT
+method is intentionally not implemented.
+.LP
+.B carl
+does not bind any server port itself. However, because this mode accepts data on standard input, any
+.BR inetd (8)
+or
+.BR inetd (8)-like
+superserver environment such as
+.BR xinetd (8)
+or
+.BR micro_inetd (1)
+can be used to make it accessible on the network. \fICareful: if you bind an external interface, you've just made your computer into an open HTTP proxy!\fR
+.B carl
+implements no access controls or authentication, so check your superserver's documentation on how to only bind an internal interface or the loopback.
+.SH ENVIRONMENT
+.TP
+.B ALL_PROXY
+.B carl
+has built-in SOCKSv4 client support. If a SOCKS URL (either
+.B socks://
+or
+.BR socks5:// ,
+which is treated as a synonym) is specified in this environment variable, all requests will be forwarded through it.
+If a port number is not specified in the URL, it is assumed to be 1080. Any provided path or arguments are ignored.
+.B carl
+does not support authentication or SOCKSv5 features, and requires your DNS be able to resolve hostnames.
+.IP
+This variable is ignored if
+.B \-N
+is specified on the command line, and it is overridden in proxy mode
+.RB ( \-p )
+if a SOCKS URL is specified on the command line.
+.LP
+.B NO_PROXY
+is not currently implemented.
+.SH "EXIT STATUS"
+A possibly helpful message may also appear unless it is suppressed by
+.BR \-q .
+These exit return codes may be expanded in future versions.
+.TP
+.B 0
+No error.
+.TP
+.B 1
+The request is pathological (nonsense, inappropriate or incomplete). This can also occur when a non-SOCKS proxy is provided
+.RB ( carl
+does not talk to other HTTP proxies; they are vapid and uninteresting at parties).
+.TP
+.B 2
+The host or proxy host could not be resolved.
+.TP
+.B 3
+The host resolved to an IPv6 address, but
+.B carl
+doesn't support those yet.
+.TP
+.B 4
+The connection to the SOCKS proxy failed.
+.TP
+.B 5
+The connection to the HTTP(S) server failed.
+.TP
+.B 6
+The TLS response from the HTTPS server could not be processed.
+.TP
+.B 253
+No data was received.
+.TP
+.B 254
+Timeout. Consider using
+.B \-t
+if the system is slower and the request should have worked.
+.TP
+.B 255
+General failure.
+
+.SH NOTES
+.B carl
+does not currently evaluate certificates for validity, so its encryption support is best considered opportunistic and it
+should not be used for high-security environments.
+
+.SH "SEE ALSO"
+.BR curl (1)
+
+.SH "HOME PAGE"
+https://github.com/classilla/cryanc
+
+.SH AUTHOR
+(C)2020-1 Cameron Kaiser and Contributors. All rights reserved. Additional copyrights apply; see the home page for full credits. BSD license.
