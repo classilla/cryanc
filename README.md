@@ -70,7 +70,7 @@ Mach family:
 
 OpenSTEP 4.0 probably also works given that these all do.
 
-- IRIX 6.5.30 (SGI MIPS; MIPSPro 7.4.4m `cc`). For 6.5.22, you may need to use `c99` (older MIPSPro versions may also work with `c99`).
+- IRIX 6.5.30 (SGI MIPS; `cc` (actually MIPSPro 7.4.4m)). For 6.5.22, you may need to use `c99` (older MIPSPro versions may also work with `c99`).
 
 - AIX 4+ (PowerPC, Power ISA; `gcc` 2.7.2.2 and 4.8). This is tested on 4.1.5 and 6.1, and should "just work" on 5L and 7.
 
@@ -90,7 +90,7 @@ These are attested to be working but are maintained by others.
 
 ## Partially working configurations
 
-- BeOS R5 (PowerPC BeBox; `cc` (actually Metrowerks CodeWarrior `mwcc` 2.2)). Functions properly at optimization levels `-O2` and below (`-O3` miscompiles). Due to differences in the way BeOS treats standard input, reading proxy requests from the TTY doesn't currently work (it does from files). Should work with `x86` and Dano. Not tested with `gcc`.
+- BeOS R5 (PowerPC BeBox; `cc` (actually Metrowerks CodeWarrior `mwcc` 2.2)). Functions properly at optimization levels `-O2` and below (`-O3` miscompiles). Due to differences in the way BeOS treats standard input, reading proxy requests from the TTY doesn't currently work (it does from files). Should work with `x86`; not tested with Dano, ZETA, BONE or `gcc`.
 
 ## Not tested or not working but might in the future
 

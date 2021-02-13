@@ -26,9 +26,13 @@ int proxy = 0;
 int http09 = 0;
 
 #if defined(__BEOS__)
+#include <fcntl.h>
+#if defined(BONE_VERSION)
+#warning not tested with BONE
+#endif
+
 /* ping-pong interval for semi-busy wait */
 #define TIMESLICE 1000
-
 /* BeOS is "special" with stdin, and select() doesn't work with it. */
 int stdin_pending() {
     int i, j;
@@ -37,8 +41,12 @@ int stdin_pending() {
     /* hack: don't check if we're not in proxy mode, we don't use it. */
     if (!proxy) return 0;
 
+    /* check tty ioctl first */
     i = ioctl(0, 'ichr', &j);
-    return (i >= 0 && j > 0);
+    if (i >= 0 && j > 0) return 1;
+
+    /* "peek" at stdin (must already be non-blocking) */
+    return (read(fileno(stdin), &c, 0) >= 0);
 }
 #endif
 
@@ -553,6 +561,9 @@ int main(int argc, char *argv[]) {
 
     /* read from socket and, if needed, stdin */
 
+#if defined(__BEOS__)
+    (void)fcntl(fileno(stdin), F_SETFL, O_NONBLOCK);
+#endif
     if (proto == 80) {
         for(;;) {
             if (!forever) (void)alarm(10);
