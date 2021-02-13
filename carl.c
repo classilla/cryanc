@@ -37,16 +37,8 @@ int stdin_pending() {
     /* hack: don't check if we're not in proxy mode, we don't use it. */
     if (!proxy) return 0;
 
-    if (isatty(fileno(stdin))) { /* XXX: doesn't seem to work right */
-        i = ioctl(0, 'ichr', &j);
-        return (i >= 0 && j > 0);
-    } else {
-        if (fread(&c, 1, 1, stdin)) {
-            if (ungetc(c, stdin) == c)
-                return 1;
-        }
-    }
-    return 0;
+    i = ioctl(0, 'ichr', &j);
+    return (i >= 0 && j > 0);
 }
 #endif
 
