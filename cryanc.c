@@ -136,7 +136,14 @@
 #if defined(sun) || defined(__sun)
 #if defined(__SVR4) || defined(__svr4__)
 /* Solaris is not officially supported yet */
-#warning compiling for Solaris - NOT YET SUPPORTED
+#warning compiling for Solaris
+#define NOT_POSIX 1
+#include <stdarg.h>
+#include <inttypes.h>
+#ifdef __sparc__
+#define NO_FUNNY_ALIGNMENT 1
+#define __BIG_ENDIAN__ 1
+#endif
 #else
 /* SunOS 4 or OS/MP ... needs a LOT of help! */
 #warning compiling for SunOS 4 and OS/MP
