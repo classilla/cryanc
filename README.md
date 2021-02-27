@@ -87,7 +87,7 @@ These are attested to be working but are maintained by others.
 - Professional MachTen 2.3 (68K; `gcc` 2.7.2.f.1)
 - IRIX 6.5 (SGI MIPS; `gcc` 9.2.0)
 - Haiku R1/beta2 (`x86_64`; `gcc` 8.3.0, requires `-lnetwork`)
-- Solaris 9 (`sparcv9`; `gcc` 2.95.3, requires `-lsocket -lnsl`)
+- Solaris 9 and 10 (`sparcv9`; `gcc` 2.95.3+, requires `-lsocket -lnsl`)
 
 ## Partially working configurations
 
