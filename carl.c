@@ -172,7 +172,7 @@ char *parse_url(char *url, char *hostname, size_t *port, size_t *proto) {
 }
 
 void help(int longdesc, char *me) {
-    fprintf(stderr, "Crypto Ancienne Resource Loader v1.5\n");
+    fprintf(stderr, "Crypto Ancienne Resource Loader v1.5-git\n");
     if (!longdesc) return;
 
     fprintf(stderr,
@@ -240,17 +240,16 @@ int main(int argc, char *argv[]) {
     if (proxy) {
         /* receiving a proxy request from stdin */
 
-        char method[10], purl[2048];
-        size_t read = 0;
-        int c, mc = 0, mu = 0, got_method = 0, got_url = 0;
+        char method[10], purl[2048], c;
+        int mc = 0, mu = 0, got_method = 0, got_url = 0;
 
         if (url) proxyurl = url;
 
         head_only = 0; quiet = 1; with_headers = 0; http09 = 1;
         method[0] = '\0'; purl[0] = '\0';
         for(;;) {
-            c = fgetc(stdin);
-            if (c == EOF) return 1; /* something's wrong */
+            if (!read(STDIN_FILENO, &c, 1))
+                return 1; /* something's wrong */
 
             if (c == ' ') {
                 if (!got_method) { got_method = 1; continue; }
@@ -341,9 +340,10 @@ int main(int argc, char *argv[]) {
             with_headers = 1;
 
             for(;;) {
-                c = fgetc(stdin);
+                if (!read(STDIN_FILENO, &c, 1))
+                    return 1; /* underflow */
                 read_buffer[read_size++] = c;
-                if (read_size == 65536) return 1; /* overflow */
+                if (read_size == BIG_STRING_SIZE) return 1; /* overflow */
 
                 if (c == '\n') {
                     if (++numcrs == 2) break; else continue;
@@ -585,8 +585,8 @@ int main(int argc, char *argv[]) {
             if (stdin_pending()) {
 #endif
                 size_t buffer_index = 0;
+                read_size = read(STDIN_FILENO, read_buffer, BIG_STRING_SIZE);
 
-                read_size = fread(read_buffer, 1, BIG_STRING_SIZE, stdin);
                 while (read_size) {
                     int res = send(sockfd, (char *)&read_buffer[buffer_index],
                                    read_size, 0);
@@ -716,7 +716,7 @@ int main(int argc, char *argv[]) {
                 /* no point until TLS is established */
                 if (!tls_established(context)) continue;
 
-                read_size = fread(read_buffer, 1, BIG_STRING_SIZE, stdin);
+                read_size = read(STDIN_FILENO, read_buffer, BIG_STRING_SIZE);
                 tls_write(context, (unsigned char *)read_buffer, read_size);
                 https_send_pending(sockfd, context);
             }
