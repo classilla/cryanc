@@ -88,6 +88,7 @@ These are attested to be working but are maintained by others.
 - IRIX 6.5 (SGI MIPS; `gcc` 9.2.0)
 - Haiku R1/beta2 (`x86_64`; `gcc` 8.3.0, requires `-lnetwork`)
 - Solaris 9 and 10 (`sparcv9`; `gcc` 2.95.3+, requires `-lsocket -lnsl`)
+- OpenServer 6 (`i386`; `gcc` 7.3.0, requires `-lsocket`)
 
 ## Partially working configurations
 
