@@ -7,9 +7,9 @@
    make that possible. Its functionality and security should be regarded as,
    at best, "good enough to shoot yourself in the foot with."
 
-   Copyright (c) 2020 Cameron Kaiser. All rights reserved.
+   Copyright (c) 2020-1 Cameron Kaiser and contributors. All rights reserved.
 
-   Based on TLSe. Copyright (c) 2016-2020, Eduard Suica.
+   Based on TLSe. Copyright (c) 2016-2020-1, Eduard Suica.
    Based on libtomcrypt. By Tom St Denis and contributors. Unlicense.
    Allegedly includes an alleged ARC4 random routine from OpenBSD (allegedly).
    Copyright (c) 1996 David Mazieres.
@@ -39434,7 +39434,7 @@ void tls_certificate_set_serial(struct TLSCertificate *cert, const unsigned char
         cert->serial_len = len;
 }
 
-void tls_certificate_set_algorithm(unsigned int *algorithm, const unsigned char *val, int len) {
+void tls_certificate_set_algorithm(struct TLSContext *context, unsigned int *algorithm, const unsigned char *val, int len) {
     if ((len == 7) && (_is_oid(val, TLS_EC_PUBLIC_KEY_OID, 7))) {
         *algorithm = TLS_EC_PUBLIC_KEY;
         return;
@@ -39514,6 +39514,11 @@ void tls_certificate_set_algorithm(unsigned int *algorithm, const unsigned char 
     if (_is_oid(val, TLS_RSA_SIGN_MD5_OID, 9)) {
         *algorithm = TLS_RSA_SIGN_MD5;
         return;
+    }
+    // client should fail on unsupported signature
+    if (!context->is_server) {
+        DEBUG_PRINT0("UNSUPPORTED SIGNATURE ALGORITHM\n");
+        context->critical_error = 1;
     }
 }
 
@@ -41564,7 +41569,7 @@ struct TLSPacket *tls_build_hello(struct TLSContext *context, int tls13_downgrad
     if (context->version == DTLS_V13)
         version = DTLS_V12;
 #endif
-    packet = tls_create_packet(context, TLS_HANDSHAKE, packet_version, 0);
+    packet = tls_create_packet(context, TLS_HANDSHAKE, version, 0);
     if (packet) {
         int extension_len = 0;
         int alpn_len = 0;
@@ -43832,6 +43837,9 @@ int tls_parse_payload(struct TLSContext *context, const unsigned char *buf, int 
                             /* empty certificates are permitted for client */
                             if (payload_res <= 0)
                                 payload_res = 1;
+                        } else {
+                            if ((certificate_verify) && (context->certificates_count))
+                                certificate_verify_alert = certificate_verify(context, context->certificates, context->certificates_count);
                         }
                     } else
                         payload_res = TLS_UNEXPECTED_MESSAGE;
@@ -45043,13 +45051,13 @@ int _private_asn1_parse(struct TLSContext *context, struct TLSCertificate *cert,
                     if (_is_field(fields, pk_id)) {
 #ifdef TLS_ECDSA_SUPPORTED
                         if ((length == 8) || (length == 5))
-                            tls_certificate_set_algorithm(&cert->ec_algorithm, &buffer[pos], length);
+                            tls_certificate_set_algorithm(context, &cert->ec_algorithm, &buffer[pos], length);
                         else
 #endif
-                            tls_certificate_set_algorithm(&cert->key_algorithm, &buffer[pos], length);
+                            tls_certificate_set_algorithm(context, &cert->key_algorithm, &buffer[pos], length);
                     }
                     if (_is_field(fields, algorithm_id))
-                        tls_certificate_set_algorithm(&cert->algorithm, &buffer[pos], length);
+                        tls_certificate_set_algorithm(context, &cert->algorithm, &buffer[pos], length);
                     
                     DEBUG_PRINT1("OBJECT IDENTIFIER(%i): ", length);
                     DEBUG_DUMP_HEX(&buffer[pos], length);
@@ -45213,10 +45221,17 @@ int tls_load_certificates(struct TLSContext *context, const unsigned char *pem_b
                     cert->priv = NULL;
                     cert->priv_len = 0;
                 }
-                context->certificates = (struct TLSCertificate **)TLS_REALLOC(context->certificates, (context->certificates_count + 1) * sizeof(struct TLSCertificate *));
-                context->certificates[context->certificates_count] = cert;
-                context->certificates_count++;
-                DEBUG_PRINT1("Loaded certificate: %i\n", (int)context->certificates_count);
+                if (context->is_server) {
+                    context->certificates = (struct TLSCertificate **)TLS_REALLOC(context->certificates, (context->certificates_count + 1) * sizeof(struct TLSCertificate *));
+                    context->certificates[context->certificates_count] = cert;
+                    context->certificates_count++;
+                    DEBUG_PRINT1("Loaded certificate: %i\n", (int)context->certificates_count);
+                } else {
+                    context->client_certificates = (struct TLSCertificate **)TLS_REALLOC(context->client_certificates, (context->client_certificates_count + 1) * sizeof(struct TLSCertificate *));
+                    context->client_certificates[context->client_certificates_count] = cert;
+                    context->client_certificates_count++;
+                    DEBUG_PRINT1("Loaded client certificate: %i\n", (int)context->client_certificates_count);
+                }
             } else {
                 DEBUG_PRINT1("WARNING - certificate version error (v%i)\n", (int)cert->version);
                 tls_destroy_certificate(cert);
@@ -46518,7 +46533,11 @@ int SSL_CTX_check_private_key(struct TLSContext *context) {
 }
 
 struct TLSContext *SSL_CTX_new(int method) {
+#ifdef WITH_TLS_13
+    return tls_create_context(method, TLS_V13);
+#else
     return tls_create_context(method, TLS_V12);
+#endif
 }
 
 void SSL_free(struct TLSContext *context) {

@@ -218,7 +218,7 @@ void tls_certificate_set_sign_key(struct TLSCertificate *cert, const unsigned ch
 char *tls_certificate_to_string(struct TLSCertificate *cert, char *buffer, int len);
 void tls_certificate_set_exponent(struct TLSCertificate *cert, const unsigned char *val, int len);
 void tls_certificate_set_serial(struct TLSCertificate *cert, const unsigned char *val, int len);
-void tls_certificate_set_algorithm(unsigned int *algorithm, const unsigned char *val, int len);
+void tls_certificate_set_algorithm(struct TLSContext *context, unsigned int *algorithm, const unsigned char *val, int len);
 void tls_destroy_certificate(struct TLSCertificate *cert);
 struct TLSPacket *tls_create_packet(struct TLSContext *context, unsigned char type, unsigned short version, int payload_size_hint);
 void tls_destroy_packet(struct TLSPacket *packet);
