@@ -36871,7 +36871,8 @@ typedef struct {
 } TLSCipher;
 
 typedef struct {
-    hash_state hash;
+    hash_state hash32;
+    hash_state hash48;
 #ifdef TLS_LEGACY_SUPPORT
     hash_state hash2;
 #endif
@@ -37219,10 +37220,10 @@ static const unsigned char TLS_RSA_SIGN_SHA512_OID[] = {0x2A, 0x86, 0x48, 0x86, 
 #if(0)
 static const unsigned char TLS_ECDSA_SIGN_SHA1_OID[] = {0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x04, 0x01, 0x05, 0x00, 0x00};
 static const unsigned char TLS_ECDSA_SIGN_SHA224_OID[] = {0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x04, 0x03, 0x01, 0x05, 0x00, 0x00};
-static const unsigned char TLS_ECDSA_SIGN_SHA256_OID[] = {0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x04, 0x03, 0x02, 0x05, 0x00, 0x00};
 static const unsigned char TLS_ECDSA_SIGN_SHA384_OID[] = {0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x04, 0x03, 0x03, 0x05, 0x00, 0x00};
 static const unsigned char TLS_ECDSA_SIGN_SHA512_OID[] = {0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x04, 0x03, 0x04, 0x05, 0x00, 0x00};
 #endif
+static const unsigned char TLS_ECDSA_SIGN_SHA256_OID[] = {0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x04, 0x03, 0x02, 0x05, 0x00, 0x00};
 
 static const unsigned char TLS_EC_PUBLIC_KEY_OID[] = {0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x02, 0x01, 0x00};
 
@@ -39334,6 +39335,9 @@ char *tls_certificate_to_string(struct TLSCertificate *cert, char *buffer, int l
                 case TLS_RSA_SIGN_SHA512:
                     res += snprintf(buffer + res, len - res, "RSA_SIGN_SHA512");
                     break;
+                case TLS_ECDSA_SIGN_SHA256:
+                    res += snprintf(buffer + res, len - res, "ECDSA_SIGN_SHA512");
+                    break;
                 case TLS_EC_PUBLIC_KEY:
                     res += snprintf(buffer + res, len - res, "EC_PUBLIC_KEY");
                     break;
@@ -39515,6 +39519,12 @@ void tls_certificate_set_algorithm(struct TLSContext *context, unsigned int *alg
         *algorithm = TLS_RSA_SIGN_MD5;
         return;
     }
+
+    if (_is_oid(val, TLS_ECDSA_SIGN_SHA256_OID, 9)) {
+        *algorithm = TLS_ECDSA_SIGN_SHA256;
+        return;
+    }
+
     // client should fail on unsupported signature
     if (!context->is_server) {
         DEBUG_PRINT0("UNSUPPORTED SIGNATURE ALGORITHM\n");
@@ -40100,25 +40110,21 @@ void _private_tls_create_hash(struct TLSContext *context) {
 
         if (hash->created) {
             unsigned char temp[TLS_MAX_SHA_SIZE];
-            if (hash_size == TLS_SHA384_MAC_SIZE)
-                sha384_done(&hash->hash, temp);
-            else
-                sha256_done(&hash->hash, temp);
+            sha384_done(&hash->hash32, temp);
+            sha256_done(&hash->hash48, temp);
         }
-        if (hash_size == TLS_SHA384_MAC_SIZE)
-            sha384_init(&hash->hash);
-        else
-            sha256_init(&hash->hash);
+        sha384_init(&hash->hash48);
+        sha256_init(&hash->hash32);
         hash->created = 1;
     } else {
 #ifdef TLS_LEGACY_SUPPORT
         /* TLS_V11 */
         if (hash->created) {
             unsigned char temp[TLS_V11_HASH_SIZE];
-            md5_done(&hash->hash, temp);
+            md5_done(&hash->hash32, temp);
             sha1_done(&hash->hash2, temp);
         }
-        md5_init(&hash->hash);
+        md5_init(&hash->hash32);
         sha1_init(&hash->hash2);
         hash->created = 1;
 #endif
@@ -40148,17 +40154,15 @@ int _private_tls_update_hash(struct TLSContext *context, const unsigned char *in
 #endif
         }
         hash_size = _private_tls_mac_length(context);
-        if (hash_size == TLS_SHA384_MAC_SIZE) {
-            sha384_process(&hash->hash, in, len);
-        } else {
-            sha256_process(&hash->hash, in, len);
+        sha256_process(&hash->hash32, in, len);
+        sha384_process(&hash->hash48, in, len);
+        if (!hash_size)
             hash_size = TLS_SHA256_MAC_SIZE;
-        }
     } else {
 #ifdef TLS_LEGACY_SUPPORT
         if (!hash->created)
             _private_tls_create_hash(context);
-        md5_process(&hash->hash, in, len);
+        md5_process(&hash->hash32, in, len);
         sha1_process(&hash->hash2, in, len);
 #endif
     }
@@ -40214,10 +40218,12 @@ int _private_tls_done_hash(struct TLSContext *context, unsigned char *hout) {
             hout = temp;
         /* TLS_HASH_DONE(&hash->hash, hout); */
         hash_size = _private_tls_mac_length(context);
-        if (hash_size == TLS_SHA384_MAC_SIZE)
-            sha384_done(&hash->hash, hout);
-        else {
-            sha256_done(&hash->hash, hout);
+        if (hash_size == TLS_SHA384_MAC_SIZE) {
+            sha256_done(&hash->hash32, temp);
+            sha384_done(&hash->hash48, hout);
+        } else {
+            sha256_done(&hash->hash32, hout);
+            sha384_done(&hash->hash48, temp);
             hash_size = TLS_SHA256_MAC_SIZE;
         }
     } else {
@@ -40227,7 +40233,7 @@ int _private_tls_done_hash(struct TLSContext *context, unsigned char *hout) {
 
         if (!hout)
             hout = temp;
-        md5_done(&hash->hash, hout);
+        md5_done(&hash->hash32, hout);
         sha1_done(&hash->hash2, hout + 16);
         hash_size = TLS_V11_HASH_SIZE;
 #endif
@@ -40270,22 +40276,24 @@ int _private_tls_get_hash(struct TLSContext *context, unsigned char *hout) {
         hash_state prec;
 
         hash_size = _private_tls_mac_length(context);
-        memcpy(&prec, &hash->hash, sizeof(hash_state));
-        if (hash_size == TLS_SHA384_MAC_SIZE)
-            sha384_done(&hash->hash, hout);
-        else {
+        if (hash_size == TLS_SHA384_MAC_SIZE) {
+            memcpy(&prec, &hash->hash48, sizeof(hash_state));
+            sha384_done(&hash->hash48, hout);
+            memcpy(&hash->hash48, &prec, sizeof(hash_state));
+        } else {
+            memcpy(&prec, &hash->hash32, sizeof(hash_state));
             hash_size = TLS_SHA256_MAC_SIZE;
-            sha256_done(&hash->hash, hout);
+            sha256_done(&hash->hash32, hout);
+            memcpy(&hash->hash32, &prec, sizeof(hash_state));
         }
-        memcpy(&hash->hash, &prec, sizeof(hash_state));
     } else {
 #ifdef TLS_LEGACY_SUPPORT
         /* TLS_V11 */
         hash_state prec;
         
-        memcpy(&prec, &hash->hash, sizeof(hash_state));
-        md5_done(&hash->hash, hout);
-        memcpy(&hash->hash, &prec, sizeof(hash_state));
+        memcpy(&prec, &hash->hash32, sizeof(hash_state));
+        md5_done(&hash->hash32, hout);
+        memcpy(&hash->hash32, &prec, sizeof(hash_state));
         
         memcpy(&prec, &hash->hash2, sizeof(hash_state));
         sha1_done(&hash->hash2, hout + 16);
@@ -44639,6 +44647,7 @@ int _private_tls_hash_len(int algorithm) {
         case TLS_RSA_SIGN_SHA1:
             return 20;
         case TLS_RSA_SIGN_SHA256:
+        case TLS_ECDSA_SIGN_SHA256:
             return 32;
         case TLS_RSA_SIGN_SHA384:
             return 48;
@@ -44683,6 +44692,7 @@ unsigned char *_private_tls_compute_hash(int algorithm, const unsigned char *mes
             }
             break;
         case TLS_RSA_SIGN_SHA256:
+        case TLS_ECDSA_SIGN_SHA256:
             DEBUG_PRINT0("SIGN SHA256\n");
             hash = (unsigned char *)TLS_MALLOC(32);
             if (!hash)
@@ -44753,6 +44763,7 @@ int tls_certificate_verify_signature(struct TLSCertificate *cert, struct TLSCert
             hash_index = find_hash("sha1");
             break;
         case TLS_RSA_SIGN_SHA256:
+        case TLS_ECDSA_SIGN_SHA256:
             hash_index = find_hash("sha256");
             break;
         case TLS_RSA_SIGN_SHA384:
@@ -44765,6 +44776,33 @@ int tls_certificate_verify_signature(struct TLSCertificate *cert, struct TLSCert
             DEBUG_PRINT0("UNKNOWN SIGNATURE ALGORITHM\n");
             return 0;
     }
+#ifdef TLS_ECDSA_SUPPORTED
+    if (cert->algorithm == TLS_ECDSA_SIGN_SHA256) {
+        ecc_key key;
+        int ecc_stat = 0;
+        unsigned char *signature = cert->sign_key;
+        int signature_len = cert->sign_len;
+
+        int err = ecc_import(parent->der_bytes, parent->der_len, &key);
+        if (err) {
+            DEBUG_PRINT1("Error importing ECC certificate (code: %i)\n", err);
+            DEBUG_DUMP_HEX_LABEL("CERTIFICATE", parent->der_bytes, parent->der_len);
+            return 0;
+        }
+        if (!signature[0]) {
+            signature++;
+            signature_len--;
+        }
+        err = ecc_verify_hash(signature, signature_len, cert->fingerprint, hash_len, &ecc_stat, &key);
+        ecc_free(&key);
+        if (err) {
+            DEBUG_PRINT1("ECC HASH VERIFY ERROR %i\n", err);
+            return 0;
+        }
+        DEBUG_PRINT1("ECC CERTIFICATE VALIDATION: %i\n", ecc_stat);
+        return ecc_stat;
+    }
+#endif
     
     err = rsa_import(parent->der_bytes, parent->der_len, &key);
     if (err) {
