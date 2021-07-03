@@ -16853,7 +16853,7 @@ int der_printable_value_decode(int v);
   #include <wchar.h>
  #else
   /* Don't define on platforms that predefine it. */
- #if !defined(_WCHAR_H) && !defined(_STDDEF_H) && !defined(_STDDEF_H_) && !defined(_ANSI_STDDEF_H) && !defined(__WCHAR_TYPE__)
+ #if !defined(_WCHAR_H) && !defined(_STDDEF_H) && !defined(_STDDEF_H_) && !defined(_ANSI_STDDEF_H) && !defined(__WCHAR_TYPE__) && !defined(_WCHAR_T)
 typedef ulong32   wchar_t;
  #endif
  #endif
