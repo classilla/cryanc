@@ -235,13 +235,14 @@ typedef unsigned long long u_int64_t;
 #define NOT_POSIX 1
 #endif
 
-/* HP-UX (tested on 11.31 IA-64) */
+/* HP-UX (tested on 11.31 IA-64 and 11.11/11.23 PA-RISC) */
 #if defined(__hpux)
 #warning compiling for HP-UX
-#if defined(__ia64)
+#if defined(__ia64) || defined(__hppa)
+#define __BIG_ENDIAN__ 1
 #define NO_FUNNY_ALIGNMENT 1
 #else
-#error HP-UX support not tested on other architectures besides ia64
+#error HP-UX support not tested on other architectures besides ia64 and hppa
 #error send your patch to fix this - you can help
 #endif
 #endif
