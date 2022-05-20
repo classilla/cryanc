@@ -42850,13 +42850,12 @@ int tls_parse_hello(struct TLSContext *context, const unsigned char *buf, int bu
             if (extension_type == 0x2B) {
                 /* supported versions */
                 if ((context->is_server) && (buf[res] == extension_len - 1)) {
-                    if (extension_len > 4) {
+                    if (extension_len > 2) {
                         int i;
                         int limit = (int)buf[res];
 
                         DEBUG_DUMP_HEX_LABEL("SUPPORTED VERSIONS", &buf[res], extension_len);
                         if (limit == extension_len - 1) {
-                            limit--;
                             for (i = 1; i < limit; i += 2) {
                                 if ((ntohs(*(unsigned short *)&buf[res + i]) == TLS_V13) || (ntohs(*(unsigned short *)&buf[res + i]) == 0x7F1C)) {
                                     context->version = TLS_V13;
