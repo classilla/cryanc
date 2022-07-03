@@ -318,6 +318,7 @@ int main(int argc, char *argv[]) {
                 (void)sprintf(buffer,
                               "GET %s HTTP/1.0\r\n"
                               "Host: %s:%d\r\n"
+                              "User-Agent: carl\r\n"
                               "Connection: close\r\n"
                               "\r\n",
                 (strlen(path) ? path : "/"), hostname, portno);
@@ -325,6 +326,7 @@ int main(int argc, char *argv[]) {
                 (void)sprintf(buffer,
                               "GET %s HTTP/1.0\r\n"
                               "Host: %s\r\n"
+                              "User-Agent: carl\r\n"
                               "Connection: close\r\n"
                               "\r\n",
                 (strlen(path) ? path : "/"), hostname);
@@ -432,6 +434,7 @@ int main(int argc, char *argv[]) {
             (void)sprintf(buffer,
 "%s %s HTTP/1.0\r\n"
 "Host: %s:%d\r\n"
+"User-Agent: carl\r\n"
 "Connection: close\r\n"
 "\r\n",
             (head_only ? "HEAD" : "GET"), (strlen(path) ? path : "/"),
@@ -440,6 +443,7 @@ int main(int argc, char *argv[]) {
             (void)sprintf(buffer,
 "%s %s HTTP/1.0\r\n"
 "Host: %s\r\n"
+"User-Agent: carl\r\n"
 "Connection: close\r\n"
 "\r\n",
             (head_only ? "HEAD" : "GET"), (strlen(path) ? path : "/"),
