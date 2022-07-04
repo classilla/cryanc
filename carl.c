@@ -48,6 +48,8 @@ int stdin_pending() {
     /* "peek" at stdin (must already be non-blocking) */
     return (read(fileno(stdin), &c, 0) >= 0);
 }
+#else
+#define stdin_pending() (FD_ISSET(STDIN_FILENO, &fdset))
 #endif
 
 void error(char *msg, int code) {
@@ -577,17 +579,16 @@ int main(int argc, char *argv[]) {
 #if !defined(__BEOS__)
             FD_SET(STDIN_FILENO, &fdset);
             (void)select(sockfd + 1, &fdset, NULL, NULL, NULL); /* wait */
-
-            /* send any post-headers data, like POST forms, etc. */
-            if (FD_ISSET(STDIN_FILENO, &fdset)) {
 #else
             /* In BeOS and Win32 select() only works on sockets, not on
                standard file handles, so we must ping-pong. */
             tv.tv_sec = 0;
             tv.tv_usec = TIMESLICE;
             (void)select(sockfd + 1, &fdset, NULL, NULL, &tv); /* wait */
-            if (stdin_pending()) {
 #endif
+
+            /* send any post-headers data, like POST forms, etc. */
+            if (stdin_pending()) {
                 size_t buffer_index = 0;
                 read_size = read(STDIN_FILENO, read_buffer, BIG_STRING_SIZE);
 
@@ -675,11 +676,7 @@ int main(int argc, char *argv[]) {
                     }
 
                     /* prioritize POST data yet to be sent */
-#if !defined(__BEOS__)
-                    if (!FD_ISSET(STDIN_FILENO, &fdset) || stdindone)
-#else
                     if (!stdin_pending() || stdindone)
-#endif
                     /* drain everything waiting on the socket */
                     while ((read_size = recv(sockfd, client_message, sizeof(client_message) , 0)) > 0) {
                         int i = tls_consume_stream(context, client_message, read_size, validate_certificate);
@@ -727,11 +724,7 @@ int main(int argc, char *argv[]) {
             }
 
             /* send any post-headers data, like POST forms, etc. */
-#if !defined(__BEOS__)
-            if (FD_ISSET(STDIN_FILENO, &fdset) && sent) {
-#else
             if (stdin_pending() && sent) {
-#endif
                 size_t buffer_index = 0;
 
                 /* no point until TLS is established */
