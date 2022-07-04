@@ -28012,7 +28012,7 @@ int pkcs_1_os2ip(void *n, unsigned char *in, unsigned long inlen) {
    @param  msghashlen      The length of the hash (octets)
    @param  sig             The signature data (encoded data)
    @param  siglen          The length of the signature data (octets)
-   @param  saltlen         The length of the salt used (octets)
+   @param  saltlen         The length of the salt used (octets) (0==auto)
    @param  hash_idx        The index of the hash desired
    @param  modulus_bitlen  The bit length of the RSA modulus
    @param  res             [out] The result of the comparison, 1==valid, 0==invalid
@@ -28022,7 +28022,7 @@ int pkcs_1_pss_decode(const unsigned char *msghash, unsigned long msghashlen,
                       const unsigned char *sig, unsigned long siglen,
                       unsigned long saltlen, int hash_idx,
                       unsigned long modulus_bitlen, int *res) {
-    unsigned char *DB, *mask, *salt, *hash;
+    unsigned char *DB, *mask, *salt, *hash, *saltpos;
     unsigned long x, y, hLen, modulus_len;
     int           err;
     hash_state    md;
@@ -28039,11 +28039,12 @@ int pkcs_1_pss_decode(const unsigned char *msghash, unsigned long msghashlen,
     }
 
     hLen        = hash_descriptor[hash_idx].hashsize;
+    modulus_bitlen--;
     modulus_len = (modulus_bitlen >> 3) + (modulus_bitlen & 7 ? 1 : 0);
 
     /* check sizes */
     if ((saltlen > modulus_len) ||
-        (modulus_len < hLen + saltlen + 2) || (siglen != modulus_len)) {
+        (modulus_len < hLen + saltlen + 2)) {
         return CRYPT_PK_INVALID_SIZE;
     }
 
@@ -28081,10 +28082,10 @@ int pkcs_1_pss_decode(const unsigned char *msghash, unsigned long msghashlen,
 
     /* copy out the hash */
     XMEMCPY(hash, sig + x, hLen);
-    x += hLen;
+    /* x += hLen; */
 
     /* check the MSB */
-    if ((sig[0] & ~(0xFF >> ((modulus_len << 3) - (modulus_bitlen - 1)))) != 0) {
+    if ((sig[0] & ~(0xFF >> ((modulus_len << 3) - (modulus_bitlen)))) != 0) {
         err = CRYPT_INVALID_PACKET;
         goto LBL_ERR;
     }
@@ -28100,22 +28101,43 @@ int pkcs_1_pss_decode(const unsigned char *msghash, unsigned long msghashlen,
     }
 
     /* now clear the first byte [make sure smaller than modulus] */
-    DB[0] &= 0xFF >> ((modulus_len << 3) - (modulus_bitlen - 1));
+    DB[0] &= 0xFF >> ((modulus_len << 3) - (modulus_bitlen));
 
     /* DB = PS || 0x01 || salt, PS == modulus_len - saltlen - hLen - 2 zero bytes */
 
-    /* check for zeroes and 0x01 */
-    for (x = 0; x < modulus_len - saltlen - hLen - 2; x++) {
-        if (DB[x] != 0x00) {
+    /* CK: if saltlen is 0, then we need to find the salt length ourselves */
+    if (saltlen == 0) {
+        for(saltlen = modulus_len - (hLen + 2); saltlen >= 0; saltlen--) {
+            switch (DB[modulus_len - hLen - saltlen - 2]) {
+                case 1: goto END_SALT;
+                case 0: continue;
+                default:
+                    err = CRYPT_INVALID_PACKET;
+                    goto LBL_ERR;
+            }
+        }
+        END_SALT: if (saltlen < 0) {
             err = CRYPT_INVALID_PACKET;
             goto LBL_ERR;
         }
-    }
 
-    /* check for the 0x01 */
-    if (DB[x++] != 0x01) {
-        err = CRYPT_INVALID_PACKET;
-        goto LBL_ERR;
+        saltpos = DB + (modulus_len - hLen - 1 - saltlen);
+    } else {
+        /* check for zeroes and 0x01 */
+        for (x = 0; x < modulus_len - saltlen - hLen - 2; x++) {
+            if (DB[x] != 0x00) {
+                err = CRYPT_INVALID_PACKET;
+                goto LBL_ERR;
+            }
+        }
+
+        /* check for the 0x01 */
+        if (DB[x++] != 0x01) {
+            err = CRYPT_INVALID_PACKET;
+            goto LBL_ERR;
+        }
+
+        saltpos = DB + x;
     }
 
     /* M = (eight) 0x00 || msghash || salt, mask = H(M) */
@@ -28129,7 +28151,7 @@ int pkcs_1_pss_decode(const unsigned char *msghash, unsigned long msghashlen,
     if ((err = hash_descriptor[hash_idx].process(&md, msghash, msghashlen)) != CRYPT_OK) {
         goto LBL_ERR;
     }
-    if ((err = hash_descriptor[hash_idx].process(&md, DB + x, saltlen)) != CRYPT_OK) {
+    if ((err = hash_descriptor[hash_idx].process(&md, saltpos, saltlen)) != CRYPT_OK) {
         goto LBL_ERR;
     }
     if ((err = hash_descriptor[hash_idx].done(&md, mask)) != CRYPT_OK) {
@@ -29781,7 +29803,11 @@ int rsa_verify_hash_ex(const unsigned char *sig, unsigned long siglen,
 
     if (padding == LTC_LTC_PKCS_1_PSS) {
         /* PSS decode and verify it */
-        err = pkcs_1_pss_decode(hash, hashlen, tmpbuf, x, saltlen, hash_idx, modulus_bitlen, stat);
+        if(modulus_bitlen%8 == 1){
+            err = pkcs_1_pss_decode(hash, hashlen, tmpbuf+1, x-1, saltlen, hash_idx, modulus_bitlen, stat);
+        } else {
+            err = pkcs_1_pss_decode(hash, hashlen, tmpbuf, x, saltlen, hash_idx, modulus_bitlen, stat);
+        }
     } else {
         /* LTC_PKCS #1 v1.5 decode it */
         unsigned char *out;
