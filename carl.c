@@ -544,7 +544,7 @@ int main(int argc, char *argv[]) {
     /* set up http or tls */
 
     if (proto == 443) {
-        context = tls_create_context(0, TLS_V12);
+        context = tls_create_context(0, TLS_V13);
         if (!tls_sni_set(context, hostname)) error("TLS context failure", 255);
         tls_client_connect(context);
         https_send_pending(sockfd, context);
@@ -673,37 +673,48 @@ int main(int argc, char *argv[]) {
                         https_send_pending(sockfd, context);
                         sent = 1;
                     }
-                    while (read_size = tls_read(context, read_buffer, BIG_STRING_SIZE - 1)) {
-                        bytesread += read_size;
-                        if (!with_headers) {
-                            size_t i = 0;
 
-                            for(i=0; i<read_size; i++) {
-                                if (read_buffer[i] == '\r') continue;
-                                if (read_buffer[i] == '\n') numcrs++;
-                                    else numcrs = 0;
-                                if (numcrs == 2) { break; }
-                            }
-                            if (numcrs < 2) continue;
-                            with_headers = 1; spoof10 = 0; /* paranoia */
-                            for(i++; i<read_size; i++) 
-                                fwrite(&(read_buffer[i]), 1, 1, stdout);
-                        } else {
-                            if (spoof10) {
-                                if (read_size > 7 &&
-                                        read_buffer[0] == 'H' &&
-                                        read_buffer[1] == 'T' &&
-                                        read_buffer[2] == 'T' &&
-                                        read_buffer[3] == 'P' &&
-                                        read_buffer[4] == '/' &&
-                                        read_buffer[5] == '1' &&
-                                        read_buffer[6] == '.' &&
-                                        read_buffer[7] == '1') {
-                                    read_buffer[7] = '0';
-                                    spoof10 = 0;
+                    /* drain everything waiting on the socket */
+                    while ((read_size = recv(sockfd, client_message, sizeof(client_message) , 0)) > 0) {
+                        int i = tls_consume_stream(context, client_message, read_size, validate_certificate);
+                        if (i < 0) {
+                            if (errno > 0) perror("tls_consume_stream");
+                            if (!quiet) fprintf(stderr, "fatal TLS error: %d\n", i);
+                            return 6;
+                        }
+
+                        while (read_size = tls_read(context, read_buffer, BIG_STRING_SIZE - 1)) {
+                            bytesread += read_size;
+                            if (!with_headers) {
+                                size_t i = 0;
+
+                                for(i=0; i<read_size; i++) {
+                                    if (read_buffer[i] == '\r') continue;
+                                    if (read_buffer[i] == '\n') numcrs++;
+                                        else numcrs = 0;
+                                    if (numcrs == 2) { break; }
                                 }
+                                if (numcrs < 2) continue;
+                                with_headers = 1; spoof10 = 0; /* paranoia */
+                                for(i++; i<read_size; i++)
+                                    fwrite(&(read_buffer[i]), 1, 1, stdout);
+                            } else {
+                                if (spoof10) {
+                                    if (read_size > 7 &&
+                                            read_buffer[0] == 'H' &&
+                                            read_buffer[1] == 'T' &&
+                                            read_buffer[2] == 'T' &&
+                                            read_buffer[3] == 'P' &&
+                                            read_buffer[4] == '/' &&
+                                            read_buffer[5] == '1' &&
+                                            read_buffer[6] == '.' &&
+                                            read_buffer[7] == '1') {
+                                        read_buffer[7] = '0';
+                                        spoof10 = 0;
+                                    }
+                                }
+                                fwrite(read_buffer, read_size, 1, stdout);
                             }
-                            fwrite(read_buffer, read_size, 1, stdout);
                         }
                     }
                 } else break; /* ready socket, no bytes: connection closed */

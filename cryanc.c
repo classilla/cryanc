@@ -36787,7 +36787,8 @@ typedef enum {
     anonymous = 0,
     rsa = 1,
     dsa = 2,
-    ecdsa = 3
+    ecdsa = 3,
+    pss_rsae = 8
 } TLSSignatureAlgorithm;
 
 struct _private_OID_chain {
@@ -37608,7 +37609,7 @@ int _private_rsa_verify_hash_md5sha1(const unsigned char *sig, unsigned long sig
 }
 #endif
 
-int _private_tls_verify_rsa(struct TLSContext *context, unsigned int hash_type, const unsigned char *buffer, unsigned int len, const unsigned char *message, unsigned int message_len) {
+int _private_tls_verify_rsa(struct TLSContext *context, unsigned int hash_type, const unsigned char *buffer, unsigned int len, const unsigned char *message, unsigned int message_len, int force_pss) {
     rsa_key key;
     int err;
     int hash_idx = -1;
@@ -37725,7 +37726,7 @@ int _private_tls_verify_rsa(struct TLSContext *context, unsigned int hash_type, 
     else
 #endif
 #ifdef WITH_TLS_13
-    if ((context->version == TLS_V13) || (context->version == DTLS_V13))
+    if (((context->version == TLS_V13) || (context->version == DTLS_V13)) || force_pss)
         err = rsa_verify_hash_ex(buffer, len, hash, hash_len, LTC_PKCS_1_PSS, hash_idx, 0, &rsa_stat, &key);
     else
 #endif
@@ -43198,6 +43199,13 @@ const unsigned char *_private_tls_parse_signature(struct TLSContext *context, co
         *sign_algorithm = buf[res];
         res++;
     }
+
+    /* convert PSS signatures, which "swap" the hash and signing bytes */
+    if (*hash_algorithm == pss_rsae) {
+        /* we support 08 04,05,06 which are SHA256, 384, 512. */
+        *hash_algorithm = *sign_algorithm;
+        *sign_algorithm = pss_rsae;
+    }
 #if NO_FUNNY_ALIGNMENT
     size = __toshort(buf, res);
 #else
@@ -43205,7 +43213,7 @@ const unsigned char *_private_tls_parse_signature(struct TLSContext *context, co
 #endif
     res += 2;
     CHECK_SIZE(size, buf_len - res, NULL)
-    DEBUG_DUMP_HEX(&buf[res], size);
+    DEBUG_DUMP_HEX(&buf[res - 4], size);
     *sig_size = size;
     *offset = res + size;
     return &buf[res];
@@ -43361,8 +43369,15 @@ int tls_parse_server_key_exchange(struct TLSContext *context, const unsigned cha
             }
         } else 
 #endif
+        if (sign_algorithm == pss_rsae) {
+            if (_private_tls_verify_rsa(context, hash_algorithm, signature, sign_size, message, message_len, pss_rsae) != 1) {
+                DEBUG_PRINT0("PSS Server signature FAILED!\n");
+                TLS_FREE(message);
+                return TLS_BROKEN_PACKET;
+            }
+        } else
         {
-            if (_private_tls_verify_rsa(context, hash_algorithm, signature, sign_size, message, message_len) != 1) {
+            if (_private_tls_verify_rsa(context, hash_algorithm, signature, sign_size, message, message_len, 0) != 1) {
                 DEBUG_PRINT0("Server signature FAILED!\n");
                 TLS_FREE(message);
                 return TLS_BROKEN_PACKET;
@@ -43681,7 +43696,7 @@ int tls_parse_verify_tls13(struct TLSContext *context, const unsigned char *buf,
             break;
 #endif
         case 0x0804:
-            valid = _private_tls_verify_rsa(context, sha256, buf + 7, signature_size, signing_data, signing_data_len);
+            valid = _private_tls_verify_rsa(context, sha256, buf + 7, signature_size, signing_data, signing_data_len, 0); // ???
             break;
         default:
             DEBUG_PRINT1("Unsupported signature: %x\n", (int)signature);
@@ -43719,12 +43734,12 @@ int tls_parse_verify(struct TLSContext *context, const unsigned char *buf, int b
         DEBUG_PRINT3("ALGORITHM %i/%i (%i)\n", hash, algorithm, (int)size);
         DEBUG_DUMP_HEX_LABEL("VERIFY", &buf[7], bytes_to_follow - 7);
         
-        res = _private_tls_verify_rsa(context, hash, &buf[7], size, context->cached_handshake, context->cached_handshake_len);
+        res = _private_tls_verify_rsa(context, hash, &buf[7], size, context->cached_handshake, context->cached_handshake_len, 0);
     } else {
 #ifdef TLS_LEGACY_SUPPORT
         unsigned short size = ntohs(*(unsigned short *)&buf[3]);
         CHECK_SIZE(size, bytes_to_follow - 2, TLS_BAD_CERTIFICATE)
-        res = _private_tls_verify_rsa(context, md5, &buf[5], size, context->cached_handshake, context->cached_handshake_len);
+        res = _private_tls_verify_rsa(context, md5, &buf[5], size, context->cached_handshake, context->cached_handshake_len, 0);
 #endif
     }
     if (context->cached_handshake) {
