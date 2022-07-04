@@ -194,7 +194,7 @@ void help(int longdesc, char *me) {
 }
 
 int main(int argc, char *argv[]) {
-    int sockfd, n, proxycon = 0, forever = 0, spoof10 = 0;
+    int sockfd, n, proxycon = 0, forever = 0, spoof10 = 0, stdindone = 0;
     size_t portno, socksport, proto, socksproto, numcrs = 0, bytesread = 0;
     struct sockaddr_in serv_addr;
     struct hostent *server, *socksserver;
@@ -674,6 +674,12 @@ int main(int argc, char *argv[]) {
                         sent = 1;
                     }
 
+                    /* prioritize POST data yet to be sent */
+#if !defined(__BEOS__)
+                    if (!FD_ISSET(STDIN_FILENO, &fdset) || stdindone)
+#else
+                    if (!stdin_pending() || stdindone)
+#endif
                     /* drain everything waiting on the socket */
                     while ((read_size = recv(sockfd, client_message, sizeof(client_message) , 0)) > 0) {
                         int i = tls_consume_stream(context, client_message, read_size, validate_certificate);
@@ -732,8 +738,13 @@ int main(int argc, char *argv[]) {
                 if (!tls_established(context)) continue;
 
                 read_size = read(STDIN_FILENO, read_buffer, BIG_STRING_SIZE);
-                tls_write(context, (unsigned char *)read_buffer, read_size);
-                https_send_pending(sockfd, context);
+                if (read_size) {
+                    tls_write(context, (unsigned char *)read_buffer, read_size);
+                    https_send_pending(sockfd, context);
+                    stdindone = 0; /* prioritize STDIN on future selects */
+                } else {
+                    stdindone = 1; /* do not prioritize STDIN further */
+                }
             }
         }
     } else { /* profit! */ }
