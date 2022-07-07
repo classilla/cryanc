@@ -1,4 +1,4 @@
-/* Crypto Ancienne
+/* Crypto Ancienne v2.0
    A pre-C99 cryptography library for the Internet of Old Things
 
    DISCLAIMER:
@@ -7,10 +7,11 @@
    make that possible. Its functionality and security should be regarded as,
    at best, "good enough to shoot yourself in the foot with."
 
-   Copyright (c) 2020-1 Cameron Kaiser and contributors. All rights reserved.
+   Copyright (c) 2020-2 Cameron Kaiser and contributors. All rights reserved.
 
-   Based on TLSe. Copyright (c) 2016-2020-1, Eduard Suica.
+   Based on TLSe. Copyright (c) 2016-2021, Eduard Suica.
    Based on libtomcrypt. By Tom St Denis and contributors. Unlicense.
+   Based on public domain works by D. J. Bernstein.
    Allegedly includes an alleged ARC4 random routine from OpenBSD (allegedly).
    Copyright (c) 1996 David Mazieres.
    All rights reserved.
@@ -19,7 +20,7 @@
 */
 
 /********************************************************************************
- Copyright (c) 2016-2020, Eduard Suica
+ Copyright (c) 2016-2021, Eduard Suica
  All rights reserved.
  
  Redistribution and use in source and binary forms, with or without modification,

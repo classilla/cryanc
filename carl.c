@@ -1,6 +1,6 @@
 /*
  * Crypto Ancienne Resource Loader "carl" (and example application)
- * Copyright 2020-1 Cameron Kaiser. All rights reserved.
+ * Copyright 2020-2 Cameron Kaiser. All rights reserved.
  * BSD license (see README.md)
  */
 
@@ -174,11 +174,11 @@ char *parse_url(char *url, char *hostname, size_t *port, size_t *proto) {
 }
 
 void help(int longdesc, char *me) {
-    fprintf(stderr, "Crypto Ancienne Resource Loader v1.5-git\n");
+    fprintf(stderr, "Crypto Ancienne Resource Loader v2.0\n");
     if (!longdesc) return;
 
     fprintf(stderr,
-"Copyright (C)2020-1 Cameron Kaiser and Contributors. All rights reserved.\n"
+"Copyright (C)2020-2 Cameron Kaiser and Contributors. All rights reserved.\n"
 "usage: %s [option] [url (optional if -p)]\n\n"
 "protocols: http https\n\n"
 "-h This message\n"
