@@ -36188,6 +36188,14 @@ typedef struct chacha_ctx chacha_ctx;
 #define ROTL32(v, n) \
   (U32V((v) << (n)) | ((v) >> (32 - (n))))
 
+#if __BIG_ENDIAN__
+#define _private_tls_U8TO32_BIG(p) \
+  (((u32)((p)[3])) | \
+   ((u32)((p)[2]) <<  8) | \
+   ((u32)((p)[1]) << 16) | \
+   ((u32)((p)[0]) << 24))
+#endif
+
 #define _private_tls_U8TO32_LITTLE(p) \
   (((u32)((p)[0])) | \
    ((u32)((p)[1]) <<  8) | \
@@ -36233,10 +36241,24 @@ static inline void chacha_keysetup(chacha_ctx *x, const u8 *k, u32 kbits) {
     x->input[9] = _private_tls_U8TO32_LITTLE(k + 4);
     x->input[10] = _private_tls_U8TO32_LITTLE(k + 8);
     x->input[11] = _private_tls_U8TO32_LITTLE(k + 12);
+#if __BIG_ENDIAN__
+    if (kbits == 256) {
+        x->input[0] = 0x61707865; /* apxe */
+        x->input[1] = 0x3320646e; /* 3 dn */
+        x->input[2] = 0x79622d32; /* yb-2 */
+        x->input[3] = 0x6b206574; /* k et */
+    } else {
+        x->input[0] = 0x61707865; /* apxe */
+        x->input[1] = 0x3120646e; /* 1 dn */
+        x->input[2] = 0x79622d36; /* yb-6 */
+        x->input[3] = 0x6b206574; /* k et */
+    }
+#else
     x->input[0] = _private_tls_U8TO32_LITTLE(constants + 0);
     x->input[1] = _private_tls_U8TO32_LITTLE(constants + 4);
     x->input[2] = _private_tls_U8TO32_LITTLE(constants + 8);
     x->input[3] = _private_tls_U8TO32_LITTLE(constants + 12);
+#endif
 }
 
 static inline void chacha_key(chacha_ctx *x, u8 *k) {
@@ -36258,8 +36280,14 @@ static inline void chacha_nonce(chacha_ctx *x, u8 *nonce) {
 }
 
 static inline void chacha_ivsetup(chacha_ctx *x, const u8 *iv, const u8 *counter) {
+#if __BIG_ENDIAN__
+    /* incoming int is native endian */
+    x->input[12] = counter == NULL ? 0 : _private_tls_U8TO32_BIG(counter + 0);
+    x->input[13] = counter == NULL ? 0 : _private_tls_U8TO32_BIG(counter + 4);
+#else
     x->input[12] = counter == NULL ? 0 : _private_tls_U8TO32_LITTLE(counter + 0);
     x->input[13] = counter == NULL ? 0 : _private_tls_U8TO32_LITTLE(counter + 4);
+#endif
     if (iv) {
         x->input[14] = _private_tls_U8TO32_LITTLE(iv + 0);
         x->input[15] = _private_tls_U8TO32_LITTLE(iv + 4);
@@ -36267,7 +36295,11 @@ static inline void chacha_ivsetup(chacha_ctx *x, const u8 *iv, const u8 *counter
 }
 
 static inline void chacha_ivsetup_96bitnonce(chacha_ctx *x, const u8 *iv, const u8 *counter) {
+#if __BIG_ENDIAN__
+    x->input[12] = counter == NULL ? 0 : _private_tls_U8TO32_BIG(counter + 0);
+#else
     x->input[12] = counter == NULL ? 0 : _private_tls_U8TO32_LITTLE(counter + 0);
+#endif
     if (iv) {
         x->input[13] = _private_tls_U8TO32_LITTLE(iv + 0);
         x->input[14] = _private_tls_U8TO32_LITTLE(iv + 4);
@@ -36276,7 +36308,11 @@ static inline void chacha_ivsetup_96bitnonce(chacha_ctx *x, const u8 *iv, const 
 }
 
 static inline void chacha_ivupdate(chacha_ctx *x, const u8 *iv, const u8 *aad, const u8 *counter) {
+#if __BIG_ENDIAN__
+    x->input[12] = counter == NULL ? 0 : _private_tls_U8TO32_BIG(counter + 0);
+#else
     x->input[12] = counter == NULL ? 0 : _private_tls_U8TO32_LITTLE(counter + 0);
+#endif
     x->input[13] = _private_tls_U8TO32_LITTLE(iv + 0);
     x->input[14] = _private_tls_U8TO32_LITTLE(iv + 4) ^ _private_tls_U8TO32_LITTLE(aad);
     x->input[15] = _private_tls_U8TO32_LITTLE(iv + 8) ^ _private_tls_U8TO32_LITTLE(aad + 4);
