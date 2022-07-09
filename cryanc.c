@@ -39948,24 +39948,41 @@ void tls_packet_update(struct TLSPacket *packet) {
                                 aad[0] = TLS_APPLICATION_DATA;
                                 aad[1] = packet->buf[1];
                                 aad[2] = packet->buf[2];
+#if NO_FUNNY_ALIGNMENT
+#ifdef TLS_WITH_CHACHA20_POLY1305
+                                if (packet->context->crypto.created == 3)
+                                    __short(aad, 3, packet->len + POLY1305_TAGLEN - header_size);
+                                else
+#endif
+                                    __short(aad, 3, packet->len + TLS_GCM_TAG_LEN - header_size);
+#else
 #ifdef TLS_WITH_CHACHA20_POLY1305
                                 if (packet->context->crypto.created == 3)
                                     *((unsigned short *)(aad + 3)) = htons(packet->len + POLY1305_TAGLEN - header_size);
                                 else
 #endif
                                     *((unsigned short *)(aad + 3)) = htons(packet->len + TLS_GCM_TAG_LEN - header_size);
+#endif
                                 aad_size = 5;
                                 sequence = aad + 5;
                                 if (packet->context->dtls)
                                     *((uint64_t *)sequence) = *(uint64_t *)&packet->buf[3];
                                 else
+#if NO_FUNNY_ALIGNMENT
+                                    memcpy((void *)sequence, (void *)&packet->context->local_sequence_number, sizeof(uint64_t));
+#else
                                     *((uint64_t *)sequence) = htonll(packet->context->local_sequence_number);
+#endif
                             } else {
 #endif
                                 if (packet->context->dtls)
                                     *((uint64_t *)aad) = *(uint64_t *)&packet->buf[3];
                                 else
+#if NO_FUNNY_ALIGNMENT
+                                    memcpy((void *)aad, (void *)&packet->context->local_sequence_number, sizeof(uint64_t));
+#else
                                     *((uint64_t *)aad) = htonll(packet->context->local_sequence_number);
+#endif
                                 aad[8] = packet->buf[0];
                                 aad[9] = packet->buf[1];
                                 aad[10] = packet->buf[2];
@@ -40020,7 +40037,11 @@ void tls_packet_update(struct TLSPacket *packet) {
 #ifdef WITH_TLS_13
                             if ((packet->context->version == TLS_V13) || (packet->context->version == DTLS_V13)) {
                                 ct[0] = TLS_APPLICATION_DATA;
+#if NO_FUNNY_ALIGNMENT
+                                __short(ct, 1, (packet->context->version == TLS_V13 ? TLS_V12 : DTLS_V12));
+#else
                                 *(unsigned short *)&ct[1] = htons(packet->context->version == TLS_V13 ? TLS_V12 : DTLS_V12);
+#endif
                                 /* is dtls? */
                                 if (header_size != 5)
                                     memcpy(ct, packet->buf + 3, header_size - 2);
@@ -42408,6 +42429,15 @@ int _private_tls_parse_key_share(struct TLSContext *context, const unsigned char
     unsigned short key_size = 0;
 
     while (buf_len >= 4) {
+#if NO_FUNNY_ALIGNMENT
+        unsigned short named_group = __toshort(buf, i);
+        i += 2;
+        buf_len -= 2;
+
+        key_size = __toshort(buf, i);
+        i += 2;
+        buf_len -= 2;
+#else
         unsigned short named_group = ntohs(*(unsigned short *)&buf[i]);
         i += 2;
         buf_len -= 2;
@@ -42415,6 +42445,7 @@ int _private_tls_parse_key_share(struct TLSContext *context, const unsigned char
         key_size = ntohs(*(unsigned short *)&buf[i]);
         i += 2;
         buf_len -= 2;
+#endif
 
         if (key_size > buf_len)
             return TLS_BROKEN_PACKET;
@@ -42932,9 +42963,19 @@ int tls_parse_hello(struct TLSContext *context, const unsigned char *buf, int bu
                     }
                 } else
                 if ((!context->is_server) && (extension_len == 2)) {
-                    if ((ntohs(*(unsigned short *)&buf[res]) == TLS_V13) || (ntohs(*(unsigned short *)&buf[res]) == 0x7F1C)) {
+#if NO_FUNNY_ALIGNMENT
+                    if ((__toshort(buf, res) == TLS_V13) || (__toshort(buf, res) == 0x7F1C))
+#else
+                    if ((ntohs(*(unsigned short *)&buf[res]) == TLS_V13) || (ntohs(*(unsigned short *)&buf[res]) == 0x7F1C))
+#endif
+                    {
                         context->version = TLS_V13;
+#if NO_FUNNY_ALIGNMENT
+                        context->tls13_version = __toshort(buf, res);
+#else
                         context->tls13_version = ntohs(*(unsigned short *)&buf[res]);
+#endif
+
                         DEBUG_PRINT0("TLS 1.3 SUPPORTED\n");
                     }
                 }
@@ -44328,13 +44369,21 @@ int tls_parse_message(struct TLSContext *context, unsigned char *buf, int buf_le
                 aad[0] = TLS_APPLICATION_DATA;
                 aad[1] = 0x03;
                 aad[2] = 0x03;
+#if NO_FUNNY_ALIGNMENT
+                __short(aad, 3, buf_len - header_size);
+#else
                 *((unsigned short *)(aad + 3)) = htons(buf_len - header_size);
+#endif
                 aad_size = 5;
                 sequence = aad + 5;
                 if (context->dtls)
                     *((uint64_t *)sequence) = *(uint64_t *)(buf + 3);
                 else
+#if NO_FUNNY_ALIGNMENT
+                    memcpy((void *)sequence, (void *)&context->remote_sequence_number, sizeof(uint64_t));
+#else
                     *((uint64_t *)sequence) = htonll(context->remote_sequence_number);
+#endif
                 memcpy(iv, context->crypto.ctx_remote_mac.remote_iv, TLS_13_AES_GCM_IV_LENGTH);
                 for (i = 0; i < 8; i++)
                     iv[offset + i] = context->crypto.ctx_remote_mac.remote_iv[offset + i] ^ sequence[i];
@@ -44421,13 +44470,21 @@ int tls_parse_message(struct TLSContext *context, unsigned char *buf, int buf_le
                 aad[0] = TLS_APPLICATION_DATA;
                 aad[1] = 0x03;
                 aad[2] = 0x03;
+#if NO_FUNNY_ALIGNMENT
+                __short(aad, 3, buf_len - header_size);
+#else
                 *((unsigned short *)(aad + 3)) = htons(buf_len - header_size);
+#endif
                 aad_size = 5;
                 sequence = aad + 5;
                 if (context->dtls)
                     *((uint64_t *)sequence) = *(uint64_t *)(buf + 3);
                 else
+#if NO_FUNNY_ALIGNMENT
+                    memcpy((void *)sequence, (void *)&context->remote_sequence_number, sizeof(uint64_t));
+#else
                     *((uint64_t *)sequence) = htonll(context->remote_sequence_number);
+#endif
             } else {
 #endif
                 if (context->dtls)
@@ -44437,7 +44494,11 @@ int tls_parse_message(struct TLSContext *context, unsigned char *buf, int buf_le
                 aad[8] = buf[0];
                 aad[9] = buf[1];
                 aad[10] = buf[2];
+#if NO_FUNNY_ALIGNMENT
+                __short(aad, 11, pt_length);
+#else
                 *((unsigned short *)(aad + 11)) = htons((unsigned short)pt_length);
+#endif
                 aad[13] = 0;
                 aad[14] = 0;
                 aad[15] = 0;
