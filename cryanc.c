@@ -246,6 +246,27 @@ typedef unsigned long long u_int64_t;
 #define NOT_POSIX 1
 #endif
 
+/* HP-UX (tested on 11.31 IA-64 and 10.20/11.11/11.23 PA-RISC) */
+#if defined(__hpux)
+#if !defined(__ia64) && !defined(__hppa)
+#error HP-UX support not tested on other architectures besides ia64 and hppa
+#error send your patch to fix this - you can help
+#endif
+#define __BIG_ENDIAN__ 1
+#define NO_FUNNY_ALIGNMENT 1
+/* HP-UX 10.x and under */
+#if defined(oldhpux)
+#warning compiling for HP-UX before 11
+#define NOT_POSIX 1
+#include <stdarg.h>
+#include <sys/_inttypes.h>
+#include <unistd.h>
+#else
+/* HP-UX 11 and up */
+#warning compiling for current HP-UX
+#endif
+#endif
+
 /*****************************************************************************
  End of architecture-dependent recipes
  ****************************************************************************/
@@ -303,7 +324,7 @@ void __short(void *where, unsigned int index, unsigned short value) {
 
 /* provide definitions if we don't have stdint.h. */
 /* Mach and inttypes.h define these elsewhere. */
-#if !defined(_INTTYPES_H_) && !defined(_INTTYPES_H)
+#if !defined(_INTTYPES_H_) && !defined(_INTTYPES_H) && !defined(__INTTYPES_INCLUDED)
 #if !defined(_MACHTYPES_H_)
 
    typedef signed char             int8_t;
@@ -16878,7 +16899,7 @@ int der_printable_value_decode(int v);
   #include <wchar.h>
  #else
   /* Don't define on platforms that predefine it. */
- #if !defined(_WCHAR_H) && !defined(_STDDEF_H) && !defined(_STDDEF_H_) && !defined(_ANSI_STDDEF_H) && !defined(__WCHAR_TYPE__)
+ #if !defined(_WCHAR_H) && !defined(_STDDEF_H) && !defined(_STDDEF_H_) && !defined(_ANSI_STDDEF_H) && !defined(__WCHAR_TYPE__) && !defined(_WCHAR_T)
 typedef ulong32   wchar_t;
  #endif
  #endif

@@ -89,6 +89,9 @@ These are attested to be working but are maintained by others.
 - Haiku R1/beta2 (`x86_64`; `gcc` 8.3.0, requires `-lnetwork`)
 - Solaris 9 and 10 (`sparcv9`; `gcc` 2.95.3+, requires `-lsocket -lnsl`)
 - OpenServer 6 (`i386`; `gcc` 7.3.0, requires `-lsocket`)
+- HP-UX 11.31 (`ia64`; `cc` A.06.26 and `gcc` 4.7.4)
+- HP-UX 11.11+ (`hppa`; `gcc` 4.7.1)
+- HP-UX 10.20 (`hppa`; `gcc` 2.95.3, requires `-Doldhpux`)
 
 ## Partially working configurations
 
