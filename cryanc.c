@@ -42016,7 +42016,7 @@ struct TLSPacket *tls_build_hello(struct TLSContext *context, int tls13_downgrad
                     extension_len += 70;
 #else
                     /* secp256r1 produces 65 bytes export */
-                    extension_len += 103;
+                    extension_len += 109;
 #endif
                 }
 #endif
@@ -42070,8 +42070,8 @@ struct TLSPacket *tls_build_hello(struct TLSContext *context, int tls13_downgrad
                 tls_packet_uint16(packet, secp521r1.iana);
 #endif
 
-                /* CK: add EC point formats for TLS 1.2 */
-                if ((context->version == TLS_V12) || (context->version == DTLS_V12)) {
+                /* CK: add EC point formats for TLS 1.2 and 1.3 */
+                if ((context->version == TLS_V12) || (context->version == DTLS_V12) || (context->version == TLS_V13) || (context->version == DTLS_V13)) {
                     tls_packet_uint16(packet, 0x000b);
                     tls_packet_uint16(packet, 0x0002);
                     tls_packet_uint8 (packet,   0x01);

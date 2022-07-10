@@ -1,0 +1,128 @@
+#!/usr/bin/perl -s
+
+sub assert {
+	my $code = shift;
+	my $xpl = shift;
+	if ($warn) {
+		eval $code || (warn("assertion failed: $xpl, @{[ scalar(@bytes) ]} remaining, stopped at value @{[ sprintf('%02x', $bytes[0]) ]}\n$code\n"), return);
+	} else {
+		eval $code || die("assertion failed: $xpl, @{[ scalar(@bytes) ]} remaining, stopped at value @{[ sprintf('%02x', $bytes[0]) ]}\n$code\n");
+	}
+	print "pass: $xpl (@{[ scalar(@bytes) ]} remaining)\n";
+}
+
+sub is { my $val = shift; return scalar(grep { $_ eq $val } @_); }
+
+sub byte { my $w = shift @bytes; printf(STDOUT "%02x ",$w); return $w; }
+sub assertbyte { &assert('&is(&byte, '.shift.')', shift); }
+sub short { my $w = (((shift @bytes) * 256) + shift @bytes);
+	printf(STDOUT "%04x ", $w); return $w; }
+sub assertshort { &assert('&is(&short, '.shift.')', shift); }
+sub assertlength { &assertshort('scalar(@bytes)', 'length must be correct'); }
+
+sub groupcheck {
+	my $length = shift;
+	my $min = shift;
+	my $what = shift;
+	my $set = shift;
+	my $xpl = shift;
+	assert($length && !($length & 1), 'length must be non-zero and even');
+	$length = $length / 2;
+	assert($length >= $min, "must have at least $min elements");
+	print "processing $length bytes of $what\n";
+	for(1..$length) { assertshort($set, $xpl); }
+}
+
+undef $/;
+chomp($buf = <STDIN>);
+$buf = lc($buf);
+$buf =~ s/^[^:]+:\s+// if ($buf =~ /:\s/);
+1 while ($buf =~ s/[\r\l\n\s]+//g);
+die("invalid hex\n") if ($buf =~ /[^0-9a-f]/);
+@bytes = unpack("C*", pack("H*", $buf));
+
+foreach(@bytes) {
+	printf(STDOUT "%02x", $_);
+}
+
+print "\ntotal length: ", scalar(@bytes), "\n";
+
+assertbyte('0x16', 'must be hello packet');
+assertshort('0x0303, 0x0304', 'must be TLS 1.2');
+assertlength;
+assertshort('0x0100', 'must be handshake');
+assertlength;
+assertshort('0x0303', 'must be TLS 1.2');
+
+print "skipping 32 bytes of client random\n";
+splice(@bytes, 0, 32);
+
+$sess = &byte;
+print "skipping 0 bytes of session ID\n";
+splice(@bytes, 0, $sess) if ($sess > 0);
+
+groupcheck(&short, 1, 'ciphers',
+	'0x1301, 0x1302, 0x1303, 0xc02b, 0xcca9, 0xc02f, '.
+	'0xcca8, 0x009e, 0xccaa',
+'must be a supported cipher');
+
+assertshort('0x0100', 'must have no compression');
+
+# length of extensions is all bytes including itself
+if ($warnext) {
+	$w = &short;
+	$k = scalar(@bytes);
+	if ($w != $k) {
+		print "\n\nWARNING: expected $k bytes of extensions, got $w\n\n";
+	}
+} else { assertlength; }
+
+print "\n== extensions ==\n\n";
+
+while(scalar(@bytes)) {
+	$ext = &short;
+	$length = &short;
+	printf(STDOUT "extension 0x%04x length %d\n", $ext, $length);
+
+	if ($ext == 0x0000) {
+		print "-- SNI --\n";
+		assertshort($length - 2, 'must be sane sublength');
+		assertbyte(0, 'must have zero byte');
+		print "bytes of hostname: ".pack("C*", splice(@bytes, 0, &short))."\n";
+	} elsif ($ext == 0x000a) {
+		print "-- supported groups --\n";
+		groupcheck(&short, 1, 'groups', '0x0017,0x0018,0x0019',
+			'must be a supported group');
+	} elsif ($ext == 0x002b) {
+		print "-- supported versions --\n";
+		# XXX: 7f1c is required. we need a must-be-present checker
+		groupcheck(&byte, 2, 'versions', '0x0304,0x0303,0x7f1c',
+			'must be a supported TLS version');
+	} elsif ($ext == 0x0033) {
+		print "-- keyshare --\n";
+		assertshort($length - 2, 'must be sane sublength');
+		$curve = &short;
+		$curvelen = &short;
+		printf(STDOUT "curve 0x%04x length %d\n", $curve, $curvelen);
+		if ($curve == 0x0017) {
+			assert($curvelen == 0x0041, 'expected length 65');
+		} else {
+			assert(0, 'must be a supported curve');
+		}
+		print "skipping $curvelen bytes of keyshare\n";
+		splice(@bytes, 0, $curvelen);
+	} elsif ($ext == 0x000d) {
+		print "-- signature algorithms --\n";
+		groupcheck(&short, 1, 'algorithms',
+			'0x0403,0x0503,0x0603,'.
+			'0x0804,0x0805,0x0806,'.
+			'0x0401,0x0501,0x0601'.
+			',0x0203,0x0201' # XXX
+		, 'must be a supported signature algorithm');
+	} else {
+		assert(0, 'must be a known extension');
+	}
+}
+
+assert(!scalar(@bytes), 'must have consumed all hello bytes');
+print "PASS!\n";
