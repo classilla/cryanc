@@ -250,9 +250,34 @@ typedef unsigned long long u_int64_t;
 #define BIG_STRING_SIZE 0xFFFF
 #endif
 
+/* We use __BIG_ENDIAN__ as a canonical macro, so flatten any variant defs. */
+#ifndef __BIG_ENDIAN__
+#if defined(__BYTE_ORDER) && defined(__BIG_ENDIAN)
+#if (__BYTE_ORDER == __BIG_ENDIAN)
+#define __BIG_ENDIAN__ 1
+#endif
+#endif
+#endif
+
+#ifndef __BIG_ENDIAN__
+#if defined(BYTE_ORDER) && defined(BIG_ENDIAN)
+#if (BYTE_ORDER == BIG_ENDIAN)
+#define __BIG_ENDIAN__ 1
+#endif
+#endif
+#endif
+
+#if __BIG_ENDIAN__
+#warning big endian platform
+#else
+#warning little or middle endian platform
+#endif
+
 #ifdef NO_FUNNY_ALIGNMENT
 /* This essentially assumes big-endian, since this is largely an issue
-   only for old-sk00l RISC. See other places in this file. */
+   only for old-sk00l RISC. See other places in this file. Note that
+   little-endian Alpha also requires this, but we handle that in the
+   compiler with -misalign and is unaffected by the endian assumptions here. */
 #define __toshort(w,x) ((w[(x)] << 8) + (w[(x)+1]))
 void __short(void *where, unsigned int index, unsigned short value) {
 	char *p = (char *)where;
