@@ -661,6 +661,11 @@ int main(int argc, char *argv[]) {
         for(;;) {
             int i;
 
+#if defined(__MACHTEN__)
+            /* it seems to get stuck here without this */
+            fprintf(stderr, "");
+#endif
+
             if (!forever) (void)alarm(10);
             FD_ZERO(&fdset);
             FD_SET(sockfd, &fdset);

@@ -191,8 +191,11 @@ typedef unsigned long long u_int64_t;
 /* mostly POSIX but not SUS */
 #define NOT_POSIX 1
 #define __WCHAR_TYPE__ 1 /* seems to already have it */
-#define NO_FUNNY_ALIGNMENT 1 /* what a surprise, Alpha hates unaligned ptrs */
-/* still, we must have missed some somewhere ... */
+/* big surprise, Alpha hates unaligned pointers. yeah, you were shocked.
+ * however, NO_FUNNY_ALIGNMENT assumes big endian and Alpha is little
+ * (mostly the uint64_t stuff). since it's slower and we require -misalign
+ * anyway due to other alignment issues, don't bother with it. */
+/* #define NO_FUNNY_ALIGNMENT 1 */
 #include <stdarg.h>
 #include <inttypes.h>
 #else
@@ -43813,8 +43816,13 @@ int tls_parse_verify_tls13(struct TLSContext *context, const unsigned char *buf,
 
     signing_data_len += _private_tls_get_hash(context, signing_data + 98);
     DEBUG_DUMP_HEX_LABEL("signature data", signing_data, signing_data_len);
+#if NO_FUNNY_ALIGNMENT
+    signature = __toshort(buf, 3);
+    signature_size = __toshort(buf, 5);
+#else
     signature = ntohs(*(unsigned short *)&buf[3]);
     signature_size = ntohs(*(unsigned short *)&buf[5]);
+#endif
     CHECK_SIZE(7 + size, buf_len, TLS_NEED_MORE_DATA)
     switch (signature) {
 #ifdef TLS_ECDSA_SUPPORTED
