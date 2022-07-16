@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.0
+
+- Support for TLS 1.3 on all supported platforms except classic BeOS
+  (which still has support for TLS 1.2).
+
+- ChaCha20Poly1305 now available on all big-endian architectures too.
+
+- New official support for macOS on Apple silicon, with contributed support
+  for SCO OpenServer 6 on `i386`, Solaris 9 and 10 on SPARC v9, HP-UX 11.31
+  on Itanium, and HP-UX 10.20 and 11.11+ on PA-RISC.
+
+- Multiple crash and early-termination bugs on classic BeOS wallpapered, at
+  least with Metrowerks `cc` on PowerPC hardware (see changed build
+  instructions).
+
+- Support for RSA-PSS-RSAE-SHA-family signatures.
+
+- Endian detection is now canonicalized and displayed at compile-time.
+
+- Various upstream signature algorithm and verification fixes.
+
+- Minimal `User-Agent` header added to `carl` on the command line to counter
+  `HTTP 500` errors from some nginx servers.
+
+- Added a simple TLS hello packet debugger in Perl for development purposes.
+
 ## 1.5
 
 - New official support for BeOS R5, Tru64 5.1B, SunOS 4.1 and IRIX 6.5,
