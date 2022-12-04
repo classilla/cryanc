@@ -85,6 +85,11 @@ Downgrade HTTP/1.1 replies to HTTP/1.0 for consumers or clients which are intole
 or
 .BR \-i ).
 .TP
+.B \-2
+Maximally negotiate TLS 1.2 instead of TLS 1.3. This is primarily for
+analysing handshake failures; under typical circumstances requiring this
+option to access a site should be considered a bug.
+.TP
 .B \-p
 Enables proxy mode (see
 .B PROXY
@@ -234,4 +239,4 @@ should not be used for high-security environments.
 https://github.com/classilla/cryanc
 
 .SH AUTHOR
-(C)2020-1 Cameron Kaiser and Contributors. All rights reserved. Additional copyrights apply; see the home page for full credits. BSD license.
+(C)2020-2 Cameron Kaiser and Contributors. All rights reserved. Additional copyrights apply; see the home page for full credits. BSD license.
