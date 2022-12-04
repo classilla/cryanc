@@ -117,8 +117,6 @@
 /* BeOS R5 (BeBox or GTFO) */
 #if defined(__BEOS__)
 #warning compiling for BeOS R5 - PARTIALLY WORKING, see notes
-#if defined(__MWERKS__)
-#warning Metrowerks compiler detected - DISABLE OPTIMIZATION
 /* mostly POSIX but not SUS */
 #define NOT_POSIX 1
 #include <stdarg.h>
@@ -129,14 +127,24 @@
 #define __BIG_ENDIAN__ 1
 #endif
 #endif
+/* pad libc */
+#define usleep(x) snooze(x)
+#if defined(__MWERKS__)
+#warning Metrowerks compiler detected - DISABLE OPTIMIZATION
 /* Mwerks enforces a 32K function-local data limit which some functions hit,
    which is made worse by BeOS's pathetic 256K stack limit per thread. */
 #define BIG_STRING_SIZE 0x0800
-/* pad libc */
-#define usleep(x) snooze(x)
 #else
-/* gcc on Intel? */
+#ifdef __GNUC__
+#if __POWERPC__
+#warning Fred Fish egcs detected - check your include paths are correct
+#else
+#warning Intel gcc - not supported
+#endif
+#else
+/* huh? */
 #warning this compiler is not supported
+#endif
 #endif
 #endif
 
