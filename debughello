@@ -26,11 +26,18 @@ sub groupcheck {
 	my $what = shift;
 	my $set = shift;
 	my $xpl = shift;
-	assert($length && !($length & 1), 'length must be non-zero and even');
-	$length = $length / 2;
+	my $isbyte = shift;
+	unless ($isbyte) {
+		assert($length && !($length & 1), 'length must be non-zero and even');
+		$length = $length / 2;
+	}
 	assert($length >= $min, "must have at least $min elements");
-	print "processing $length bytes of $what\n";
-	for(1..$length) { assertshort($set, $xpl); }
+	print "processing $length $what\n";
+	if ($isbyte) {
+		for(1..$length) { assertbyte($set, $xpl); }
+	} else {
+		for(1..$length) { assertshort($set, $xpl); }
+	}
 }
 
 undef $/;
@@ -58,12 +65,12 @@ print "skipping 32 bytes of client random\n";
 splice(@bytes, 0, 32);
 
 $sess = &byte;
-print "skipping 0 bytes of session ID\n";
+print "skipping $sess bytes of session ID\n";
 splice(@bytes, 0, $sess) if ($sess > 0);
 
 groupcheck(&short, 1, 'ciphers',
 	'0x1301, 0x1302, 0x1303, 0xc02b, 0xcca9, 0xc02f, '.
-	'0xcca8, 0x009e, 0xccaa',
+	'0xcca8, 0x009e, 0xccaa, 0x00ff',
 'must be a supported cipher');
 
 assertshort('0x0100', 'must have no compression');
@@ -77,9 +84,10 @@ if ($warnext) {
 	}
 } else { assertlength; }
 
-print "\n== extensions ==\n\n";
+print "\n== extensions ==\n";
 
 while(scalar(@bytes)) {
+	print STDOUT "\n";
 	$ext = &short;
 	$length = &short;
 	printf(STDOUT "extension 0x%04x length %d\n", $ext, $length);
@@ -119,6 +127,10 @@ while(scalar(@bytes)) {
 			'0x0401,0x0501,0x0601'.
 			',0x0203,0x0201' # XXX
 		, 'must be a supported signature algorithm');
+	} elsif ($ext == 0x000b) {
+		print "-- EC point formats --\n";
+		groupcheck(&byte, 1, 'formats', '0x00,0x01,0x02',
+			'must be a known EC point format', 1);
 	} else {
 		assert(0, 'must be a known extension');
 	}

@@ -44399,7 +44399,7 @@ int tls_parse_message(struct TLSContext *context, unsigned char *buf, int buf_le
     ptr = buf + buf_pos;
 
     CHECK_SIZE(buf_pos + length, buf_len, TLS_NEED_MORE_DATA)
-    DEBUG_PRINT2("Message type: %0x, length: %i\n", (int)type, (int)length);
+    DEBUG_PRINT2("Message type: 0x%0x, length: %i\n", (int)type, (int)length);
     if ((context->cipher_spec_set) && (type != TLS_CHANGE_CIPHER)) {
         unsigned char aad[16];
         int aad_size, res0, res1, res2, res3;
@@ -44719,6 +44719,8 @@ int tls_parse_message(struct TLSContext *context, unsigned char *buf, int buf_le
         case TLS_APPLICATION_DATA:
             if (context->connection_status != 0xFF) {
                 DEBUG_PRINT0("UNEXPECTED APPLICATION DATA MESSAGE\n");
+                DEBUG_DUMP_HEX(ptr, length);
+                DEBUG_PRINT0("\n");
                 payload_res = TLS_UNEXPECTED_MESSAGE;
                 _private_tls_write_packet(tls_build_alert(context, 1, unexpected_message));
             } else {
