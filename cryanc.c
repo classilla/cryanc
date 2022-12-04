@@ -44400,6 +44400,16 @@ int tls_parse_message(struct TLSContext *context, unsigned char *buf, int buf_le
 
     CHECK_SIZE(buf_pos + length, buf_len, TLS_NEED_MORE_DATA)
     DEBUG_PRINT2("Message type: 0x%0x, length: %i\n", (int)type, (int)length);
+#ifdef WITH_TLS_13
+    if ((context->version == TLS_V13) || (context->version == DTLS_V13)) {
+        if (type == TLS_APPLICATION_DATA && !(context->crypto.created) && !(context->is_server)) {
+            /* CK: possible to send wrapped records without a cipher change */
+            DEBUG_PRINT0("WRAPPED RECORD WITHOUT CIPHER CHANGE, FORCING KEY\n");
+            _private_tls13_key(context, 1);
+            context->cipher_spec_set = 1;
+        }
+    }
+#endif
     if ((context->cipher_spec_set) && (type != TLS_CHANGE_CIPHER)) {
         unsigned char aad[16];
         int aad_size, res0, res1, res2, res3;
