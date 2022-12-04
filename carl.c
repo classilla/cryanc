@@ -180,7 +180,7 @@ char *parse_url(char *url, char *hostname, size_t *port, size_t *proto) {
 }
 
 void help(int longdesc, char *me) {
-    fprintf(stderr, "Crypto Ancienne Resource Loader v2.0\n");
+    fprintf(stderr, "Crypto Ancienne Resource Loader v2.0-git\n");
     if (!longdesc) return;
 
     fprintf(stderr,
@@ -198,6 +198,7 @@ void help(int longdesc, char *me) {
 "-t No timeout (default is 10s)\n"
 "-u Upgrade HTTP requests to HTTPS transparently\n"
 "-s Spoof HTTP/1.1 replies as HTTP/1.0 (irrelevant without -H, -p or -i)\n"
+"-2 Negotiate TLS 1.2 instead of 1.3\n"
     , me);
 }
 
@@ -207,7 +208,7 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in serv_addr;
     struct hostent *server, *socksserver;
     fd_set fdset;
-    int read_size;
+    int read_size, tls12 = 0;
     int sent = 0, arg = 0, head_only = 0, with_headers = 0, upgrayedd = 0;
     char *path = NULL, *url = NULL, *proxyurl = NULL;
     struct TLSContext *context;
@@ -248,6 +249,7 @@ int main(int argc, char *argv[]) {
         if (strchr(argv[arg], 't')) { forever = 1; }
         if (strchr(argv[arg], 'q')) { quiet = 1; }
         if (strchr(argv[arg], 'p')) { proxy = 1; }
+        if (strchr(argv[arg], '2')) { tls12 = 1; }
     }
 
     if (proxy) {
@@ -562,7 +564,7 @@ int main(int argc, char *argv[]) {
         /* the stack overhead is apparently too much for it */
         context = tls_create_context(0, TLS_V12);
 #else
-        context = tls_create_context(0, TLS_V13);
+        context = tls_create_context(0, (tls12) ? TLS_V12 : TLS_V13);
 #endif
         if (!tls_sni_set(context, hostname)) error("TLS context failure", 255);
         tls_client_connect(context);
