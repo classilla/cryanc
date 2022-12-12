@@ -275,8 +275,29 @@ typedef unsigned long long u_int64_t;
 #endif
 #endif
 
+/* AmigaOS with ADE gcc 2.95.3 and ixemul */
+#if defined(__amiga__) || defined(__AMIGA__)
+#warning compiling for AmigaOS
+#if !defined(__ixemul)
+#error currently requires ixemul for proper POSIX semantics
+#error send your patch to fix this - you can help
+#endif
+#if !defined(__GNUC__)
+#warning non-gcc compiler detected, unsupported
+#endif
+#if !defined(__mc68000__) && !defined(__mc68000) && !defined(mc68000)
+#warning not a 68K target, assuming native PowerPC, unsupported
+#endif
+#define NOT_POSIX 1
+#include <stdarg.h>
+#include <unistd.h>
+#ifndef __BIG_ENDIAN__
+#define __BIG_ENDIAN__ 1
+#endif
+#endif
+
 /*****************************************************************************
- End of architecture-dependent recipes
+ End of architecture-dependent recipes (mostly)
  ****************************************************************************/
 #ifndef BIG_STRING_SIZE
 #define BIG_STRING_SIZE 0xFFFF

@@ -54,6 +54,7 @@ These are tested using `carl`, which is the included example. Most configuration
   - NeXTSTEP 3.3 (HP PA-RISC; `cc` (actually `gcc` 2.5))
   - Power MachTen 4.1.4 (PowerPC; `gcc` 2.8.1; `setstackspace 1048576 /usr/bin/cpp` and `setstackspace 4194304 /usr/bin/as`)
 
+- AmigaOS 3.9 (68K; `gcc` 2.95.3 with `ixemul.library` and `ixnet.library`). Using library version 63.1; may work on earlier versions and earlier OSes. The [Aminet ADE package](http://aminet.net/package/dev/gcc/ADE) is most convenient for building this.
 - IRIX 6.5.30 (SGI MIPS; `cc` (actually MIPSPro 7.4.4m)). For 6.5.22, you may need to use `c99` (older MIPSPro versions may also work with `c99`).
 - AIX 4+ (PowerPC, Power ISA; `gcc` 2.7.2.2 and 4.8). This is tested on 4.1.5 and 6.1, and should "just work" on 5L and 7.
 - A/UX 3.1 (68K; `gcc` 2.7.2.2, requires `-lbsd`)
@@ -84,6 +85,7 @@ These are attested to be working but are maintained by others.
 - It should be possible to port to Win32 with something like `mxe`; there are hooks for it in TLSe already.
 - Solaris 2+ should work now that SunOS 4 does.
 - HP-UX on 68K. We have one locally.
+- Would be nice to eliminate the `ixemul` and `ixnet` dependencies for AmigaOS, but it was the easiest way of getting the port launched.
 - The people demand a VMS port! Need to check the license for that C compiler on our VAXstation ...
 
 ## Porting it to your favourite geriatric platform
