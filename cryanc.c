@@ -7,7 +7,7 @@
    make that possible. Its functionality and security should be regarded as,
    at best, "good enough to shoot yourself in the foot with."
 
-   Copyright (c) 2020-2 Cameron Kaiser and contributors. All rights reserved.
+   Copyright (c) 2020-3 Cameron Kaiser and contributors. All rights reserved.
 
    Based on TLSe. Copyright (c) 2016-2021, Eduard Suica.
    Based on libtomcrypt. By Tom St Denis and contributors. Unlicense.
@@ -327,16 +327,29 @@ typedef unsigned long long u_int64_t;
 #endif
 
 #ifdef NO_FUNNY_ALIGNMENT
-/* This essentially assumes big-endian, since this is largely an issue
-   only for old-sk00l RISC. See other places in this file. Note that
-   little-endian Alpha also requires this, but we handle that in the
-   compiler with -misalign and is unaffected by the endian assumptions here. */
+/* These are inherently big endian, since they replace htons()/ntohs(). */
 #define __toshort(w,x) ((w[(x)] << 8) + (w[(x)+1]))
 void __short(void *where, unsigned int index, unsigned short value) {
 	char *p = (char *)where;
 	p[index] = value >> 8;
 	p[index+1] = (value & 0xff);
 }
+#if __BIG_ENDIAN__
+/* Just memcpy() the long long dudes */
+#else
+/* Convert native long long to big endian. */
+void __llong(void *where, uint64_t value) {
+	char *p = (char *)where;
+	p[7] = value & 0xff;
+	p[6] = value >> 8;
+	p[5] = value >> 16;
+	p[4] = value >> 24;
+	p[3] = value >> 32;
+	p[2] = value >> 40;
+	p[1] = value >> 48;
+	p[0] = value >> 56;
+}
+#endif
 #endif
 
 /* Default: assume POSIX-SUS (current Linux and BSDs, etc.) */
@@ -40054,7 +40067,11 @@ void tls_packet_update(struct TLSPacket *packet) {
                                     *((uint64_t *)sequence) = *(uint64_t *)&packet->buf[3];
                                 else
 #if NO_FUNNY_ALIGNMENT
+#if __BIG_ENDIAN__
                                     memcpy((void *)sequence, (void *)&packet->context->local_sequence_number, sizeof(uint64_t));
+#else
+                                    __llong((void *)sequence, packet->context->local_sequence_number);
+#endif
 #else
                                     *((uint64_t *)sequence) = htonll(packet->context->local_sequence_number);
 #endif
@@ -40064,7 +40081,11 @@ void tls_packet_update(struct TLSPacket *packet) {
                                     *((uint64_t *)aad) = *(uint64_t *)&packet->buf[3];
                                 else
 #if NO_FUNNY_ALIGNMENT
+#if __BIG_ENDIAN__
                                     memcpy((void *)aad, (void *)&packet->context->local_sequence_number, sizeof(uint64_t));
+#else
+                                    __llong((void *)aad, packet->context->local_sequence_number);
+#endif
 #else
                                     *((uint64_t *)aad) = htonll(packet->context->local_sequence_number);
 #endif
@@ -44480,7 +44501,11 @@ int tls_parse_message(struct TLSContext *context, unsigned char *buf, int buf_le
                     *((uint64_t *)sequence) = *(uint64_t *)(buf + 3);
                 else
 #if NO_FUNNY_ALIGNMENT
+#if __BIG_ENDIAN__
                     memcpy((void *)sequence, (void *)&context->remote_sequence_number, sizeof(uint64_t));
+#else
+                    __llong((void *)sequence, context->remote_sequence_number);
+#endif
 #else
                     *((uint64_t *)sequence) = htonll(context->remote_sequence_number);
 #endif
@@ -44497,7 +44522,15 @@ int tls_parse_message(struct TLSContext *context, unsigned char *buf, int buf_le
                 if (context->dtls)
                     *((uint64_t *)aad) = htonll(dtls_sequence_number);
                 else
+#if NO_FUNNY_ALIGNMENT
+#if __BIG_ENDIAN__
+                    memcpy((void *)aad, (void *)&context->remote_sequence_number, sizeof(uint64_t));
+#else
+                    __llong((void *)aad, context->remote_sequence_number);
+#endif
+#else
                     *((uint64_t *)aad) = htonll(context->remote_sequence_number);
+#endif
                 aad[8] = buf[0];
                 aad[9] = buf[1];
                 aad[10] = buf[2];
@@ -44581,7 +44614,11 @@ int tls_parse_message(struct TLSContext *context, unsigned char *buf, int buf_le
                     *((uint64_t *)sequence) = *(uint64_t *)(buf + 3);
                 else
 #if NO_FUNNY_ALIGNMENT
+#if __BIG_ENDIAN__
                     memcpy((void *)sequence, (void *)&context->remote_sequence_number, sizeof(uint64_t));
+#else
+                    __llong((void *)sequence, context->remote_sequence_number);
+#endif
 #else
                     *((uint64_t *)sequence) = htonll(context->remote_sequence_number);
 #endif
@@ -44590,7 +44627,15 @@ int tls_parse_message(struct TLSContext *context, unsigned char *buf, int buf_le
                 if (context->dtls)
                     *((uint64_t *)aad) = htonll(dtls_sequence_number);
                 else
+#if NO_FUNNY_ALIGNMENT
+#if __BIG_ENDIAN__
+                    memcpy((void *)aad, (void *)&context->remote_sequence_number, sizeof(uint64_t));
+#else
+                    __llong((void *)aad, context->remote_sequence_number);
+#endif
+#else
                     *((uint64_t *)aad) = htonll(context->remote_sequence_number);
+#endif
                 aad[8] = buf[0];
                 aad[9] = buf[1];
                 aad[10] = buf[2];
@@ -44625,9 +44670,20 @@ int tls_parse_message(struct TLSContext *context, unsigned char *buf, int buf_le
                 _private_tls_poly1305_update(&ctx, zeropad, 16 - rem);
             
             _private_tls_U32TO8(&trail[0], aad_size == 5 ? 5 : 13);
-            *(int *)&trail[4] = 0;
             _private_tls_U32TO8(&trail[8], pt_length);
+#if NO_FUNNY_ALIGNMENT
+            trail[4] = 0;
+            trail[5] = 0;
+            trail[6] = 0;
+            trail[7] = 0;
+            trail[12] = 0;
+            trail[13] = 0;
+            trail[14] = 0;
+            trail[15] = 0;
+#else
+            *(int *)&trail[4] = 0;
             *(int *)&trail[12] = 0;
+#endif
 
             _private_tls_poly1305_update(&ctx, trail, 16);
             _private_tls_poly1305_finish(&ctx, mac_tag);

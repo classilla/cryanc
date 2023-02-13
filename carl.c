@@ -1,6 +1,6 @@
 /*
  * Crypto Ancienne Resource Loader "carl" (and example application)
- * Copyright 2020-2 Cameron Kaiser. All rights reserved.
+ * Copyright 2020-3 Cameron Kaiser and contributors. All rights reserved.
  * BSD license (see README.md)
  */
 
