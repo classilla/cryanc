@@ -39,6 +39,10 @@ These are all acknowledged limitations in TLSe and should improve as upstream do
 
 - Support for other, possibly better (C)PRNGs or the old `prngd`/`egd` protocol.
 
+## Known differences
+
+- KTLS is not presently enabled, even on systems that offer this support (define `WITH_KTLS` if you want it) and even though TLSe supports it: most platforms that need Crypto Ancienne won't have KTLS or a sufficiently new enough implementation and thus this will likely never be the default.
+
 ## Working configurations
 
 These are tested using `carl`, which is the included example. Most configurations can build simply with `gcc -O3 -o carl carl.c`. The magic for operating system support is almost all in `cryanc.c`.
