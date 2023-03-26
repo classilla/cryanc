@@ -156,7 +156,7 @@
 #define NOT_POSIX 1
 #include <stdarg.h>
 #include <inttypes.h>
-#ifdef __sparc__
+#if (defined(__sparc) || defined(__sparc__))
 #define NO_FUNNY_ALIGNMENT 1
 #define __BIG_ENDIAN__ 1
 #endif
@@ -293,6 +293,28 @@ typedef unsigned long long u_int64_t;
 #include <unistd.h>
 #ifndef __BIG_ENDIAN__
 #define __BIG_ENDIAN__ 1
+#endif
+#endif
+
+/* Architectures we will always break up aligned accesses on */
+#ifndef FUNNY_ALIGNMENT_OK
+#ifndef NO_FUNNY_ALIGNMENT
+#if (defined(mips) || defined(_mips) || defined(__mips) || defined(__mips__) || defined(_MIPS_) || defined(__MIPS__) || defined(__MIPSEL__) || defined(__MIPSEB__))
+#warning detected MIPS architecture, forcing aligned memory access
+#define NO_FUNNY_ALIGNMENT 1
+#endif
+#if (defined(__sparc) || defined(__sparc__))
+#warning detected SPARC architecture, forcing aligned memory access
+#define NO_FUNNY_ALIGNMENT 1
+#endif
+#if (defined(__hppa) || defined(__hppa__))
+#warning detected PA-RISC architecture, forcing aligned memory access
+#define NO_FUNNY_ALIGNMENT 1
+#endif
+#if (defined(__sh__))
+#warning detected SuperH architecture, forcing aligned memory access
+#define NO_FUNNY_ALIGNMENT 1
+#endif
 #endif
 #endif
 
