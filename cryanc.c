@@ -41967,7 +41967,7 @@ struct TLSPacket *tls_build_hello(struct TLSContext *context, int tls13_downgrad
 #ifdef TLS_CLIENT_ECDHE
 #ifdef TLS_WITH_CHACHA20_POLY1305
     #ifdef TLS_CLIENT_ECDSA
-                tls_packet_uint16(packet, TLS_CIPHERS_SIZE(16, 5));
+                tls_packet_uint16(packet, TLS_CIPHERS_SIZE(17, 5));
     #ifdef TLS_PREFER_CHACHA20
                 tls_packet_uint16(packet, TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256);
     #endif
@@ -42033,8 +42033,9 @@ struct TLSPacket *tls_build_hello(struct TLSContext *context, int tls13_downgrad
                 tls_packet_uint16(packet, TLS_CIPHERS_SIZE(0, 5));
 #endif
                 /* tls_packet_uint16(packet, TLS_RSA_WITH_AES_256_GCM_SHA384); */
-#ifndef TLS_ROBOT_MITIGATION
+		/* acme.com grrrr */
                 tls_packet_uint16(packet, TLS_RSA_WITH_AES_128_GCM_SHA256);
+#ifndef TLS_ROBOT_MITIGATION
                 tls_packet_uint16(packet, TLS_RSA_WITH_AES_256_CBC_SHA256);
                 tls_packet_uint16(packet, TLS_RSA_WITH_AES_128_CBC_SHA256);
                 tls_packet_uint16(packet, TLS_RSA_WITH_AES_256_CBC_SHA);

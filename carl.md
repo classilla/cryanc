@@ -52,7 +52,7 @@ In general, options do not match
   **EXIT**
   **STATUS**).
 * **-t**  
-  Disable timeouts. Otherwise, transactions that take longer than 10 seconds are aborted. Necessary for slower systems that may not negotiate TLS quickly enough.
+  Disable timeouts. Otherwise, transactions that take longer than 10 seconds are aborted. Necessary for slower systems that may not negotiate TLS quickly enough. Given that Crypto Ancienne specifically caters to such systems, this option may become the default in future versions.
 * **-H**  
   Use
   **HEAD**
@@ -85,9 +85,11 @@ In general, options do not match
   or
   **-i**).
 * **-2**  
-  Maximally negotiate TLS 1.2 instead of TLS 1.3. This is primarily for
-  analysing handshake failures; under typical circumstances requiring this
-  option to access a site should be considered a bug.
+  Maximally negotiate TLS 1.2 instead of TLS 1.3. This is primarily for analysing handshake failures; under typical circumstances requiring this option to access a site should be considered a bug.
+* **-3**  
+  Conversely, do not allow fallbacks to a TLS 1.2 context if negotiating a TLS 1.3 context fails. By default
+  **carl**
+  will retry such connections to account for those hosts that genuinely support TLS 1.2 but not any of the ciphers that TLS 1.2 and TLS 1.3 would have in common. These sites are getting fewer and fewer, and thus this option may become the default in future versions.
 * **-p**  
   Enables proxy mode (see
   **PROXY**
@@ -253,4 +255,4 @@ https://github.com/classilla/cryanc
 
 # Author
 
-(C)2020-2 Cameron Kaiser and Contributors. All rights reserved. Additional copyrights apply; see the home page for full credits. BSD license.
+(C)2020-3 Cameron Kaiser and Contributors. All rights reserved. Additional copyrights apply; see the home page for full credits. BSD license.

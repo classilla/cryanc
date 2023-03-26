@@ -184,7 +184,7 @@ void help(int longdesc, char *me) {
     if (!longdesc) return;
 
     fprintf(stderr,
-"Copyright (C)2020-2 Cameron Kaiser and Contributors. All rights reserved.\n"
+"Copyright (C)2020-3 Cameron Kaiser and Contributors. All rights reserved.\n"
 "usage: %s [option] [url (optional if -p)]\n\n"
 "protocols: http https\n\n"
 "-h This message\n"
@@ -198,6 +198,7 @@ void help(int longdesc, char *me) {
 "-t No timeout (default is 10s)\n"
 "-u Upgrade HTTP requests to HTTPS transparently\n"
 "-s Spoof HTTP/1.1 replies as HTTP/1.0 (irrelevant without -H, -p or -i)\n"
+"-3 Do not retry as TLS 1.2\n"
 "-2 Negotiate TLS 1.2 instead of 1.3\n"
     , me);
 }
@@ -208,7 +209,7 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in serv_addr;
     struct hostent *server, *socksserver;
     fd_set fdset;
-    int read_size, tls12 = 0;
+    int read_size, tls12 = 0, tls13only = 0;
     int sent = 0, arg = 0, head_only = 0, with_headers = 0, upgrayedd = 0;
     char *path = NULL, *url = NULL, *proxyurl = NULL;
     struct TLSContext *context;
@@ -226,6 +227,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     proxyurl = getenv("ALL_PROXY");
+    if (!strlen(proxyurl)) proxyurl = NULL;
 
     for(;;) {
         if (++arg >= argc) {
@@ -244,6 +246,7 @@ int main(int argc, char *argv[]) {
         if (strchr(argv[arg], 'i')) { with_headers = 1; }
         if (strchr(argv[arg], 'H')) { head_only = 1; with_headers = 1; }
         if (strchr(argv[arg], 'N')) { proxyurl = NULL; }
+        if (strchr(argv[arg], '3')) { tls13only = 1; }
         if (strchr(argv[arg], 'u')) { upgrayedd = 1; }
         if (strchr(argv[arg], 's')) { spoof10 = 1; }
         if (strchr(argv[arg], 't')) { forever = 1; }
@@ -396,7 +399,7 @@ int main(int argc, char *argv[]) {
                 if (strstr(++has_host, "Host: ")) return 1;
 
                 /* header is bogus? eat more of my shorts. */
-		if (proto != portno) { /* only allow host:port */
+                if (proto != portno) { /* only allow host:port */
                     if (!strstr((char *)read_buffer, hostport)) return 1;
                 } else { /* allow either */
                     if (!strstr((char *)read_buffer, hosthost) &&
@@ -468,11 +471,14 @@ int main(int argc, char *argv[]) {
 
     signal(SIGPIPE, SIG_IGN);
     signal(SIGALRM, timeout);
+retrial: /* considered harmful */
     if (!forever) (void)alarm(10);
     
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) 
         error("socket", 255);
+    /* nb: have to re-resolve during a fallback because we might have stale
+       data from other queries */
     server = gethostbyname(hostname);
     if (server == NULL) {
         if (proxy) error("Host not found", 2);
@@ -685,6 +691,19 @@ int main(int argc, char *argv[]) {
                 if ((read_size = recv(sockfd, client_message, sizeof(client_message) , 0)) > 0) {
                     int i = tls_consume_stream(context, client_message, read_size, validate_certificate);
                     if (i < 0) {
+#if !defined(__BEOS__)
+                        /* only fallback if allowed and if during hello
+                           (elsewise it's an error) */
+                        if (!tls12 && !tls13only && (tls_established(context) < 1)) {
+#if DEBUG
+                            fprintf(stderr, "warning: failed tls 1.3, error %d, falling back\n", i);
+#endif
+                            tls12 = 1;
+                            close(sockfd);
+                            tls_destroy_context(context);
+                            goto retrial;
+                        }
+#endif
                         if (errno > 0) perror("tls_consume_stream");
                         if (!quiet) fprintf(stderr, "fatal TLS error: %d\n", i);
                         return 6;

@@ -4,9 +4,9 @@ sub assert {
 	my $code = shift;
 	my $xpl = shift;
 	if ($warn) {
-		eval $code || (warn("assertion failed: $xpl, @{[ scalar(@bytes) ]} remaining, stopped at value @{[ sprintf('%02x', $bytes[0]) ]}\n$code\n"), return);
+		eval $code || (warn("assertion failed: $xpl, @{[ scalar(@bytes) ]} remaining, stopped at value @{[ sprintf('%02x %02x', $bytes[0], $bytes[1]) ]}\n$code\n"), return);
 	} else {
-		eval $code || die("assertion failed: $xpl, @{[ scalar(@bytes) ]} remaining, stopped at value @{[ sprintf('%02x', $bytes[0]) ]}\n$code\n");
+		eval $code || die("assertion failed: $xpl, @{[ scalar(@bytes) ]} remaining, stopped at value @{[ sprintf('%02x %02x', $bytes[0], $bytes[1]) ]}\n$code\n");
 	}
 	print "pass: $xpl (@{[ scalar(@bytes) ]} remaining)\n";
 }
@@ -70,7 +70,9 @@ splice(@bytes, 0, $sess) if ($sess > 0);
 
 groupcheck(&short, 1, 'ciphers',
 	'0x1301, 0x1302, 0x1303, 0xc02b, 0xcca9, 0xc02f, '.
-	'0xcca8, 0x009e, 0xccaa, 0x00ff',
+	'0xcca8, 0x009e, 0xccaa, 0x00ff, 0x009c, 0xc023, '.
+	'0xc00a, 0xc009, 0xc013, 0xc014, 0xc027, 0x006b, '.
+	'0x0067, 0x0039, 0x0033',
 'must be a supported cipher');
 
 assertshort('0x0100', 'must have no compression');
@@ -131,6 +133,9 @@ while(scalar(@bytes)) {
 		print "-- EC point formats --\n";
 		groupcheck(&byte, 1, 'formats', '0x00,0x01,0x02',
 			'must be a known EC point format', 1);
+	} elsif ($ext == 0xff01) {
+		print "-- renegotiation info --\n";
+		assertbyte(0, 'must have zero byte');
 	} else {
 		assert(0, 'must be a known extension');
 	}
