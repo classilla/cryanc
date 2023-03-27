@@ -296,6 +296,20 @@ typedef unsigned long long u_int64_t;
 #endif
 #endif
 
+/* Mac OS with MrC (possibly also SC). This is REALLY BUGGY. */
+/* MrC doesn't understand #warning, so we turn off our helpful diagnostics. */
+#ifdef MPW_C
+#include <stdarg.h>
+#define NOT_POSIX 1
+#define __BIG_ENDIAN__ 1
+/* This works around issues with the compiler (PowerPC handles misaligned
+   accesses just fine). */
+#define NO_FUNNY_ALIGNMENT 1
+#define inline
+/* ^ ... to nothing. These compilers don't understand this keyword, but they
+   automatically inline short functions. */
+#endif
+
 /* Architectures we will always break up aligned accesses on */
 #ifndef FUNNY_ALIGNMENT_OK
 #ifndef NO_FUNNY_ALIGNMENT
@@ -343,7 +357,9 @@ typedef unsigned long long u_int64_t;
 #endif
 
 #if __BIG_ENDIAN__
+#ifndef MPW_C
 #warning big endian platform
+#endif
 #else
 #warning little or middle endian platform
 #endif
@@ -382,7 +398,9 @@ void __llong(void *where, uint64_t value) {
 #include <unistd.h>
 #include <stdarg.h>
 #else
+#ifndef MPW_C
 #warning compiling with compatibility stubs
+#endif
 
 /* Sys-dep work arounds for old headers */
 
@@ -16963,7 +16981,7 @@ int der_printable_value_decode(int v);
   #include <wchar.h>
  #else
   /* Don't define on platforms that predefine it. */
- #if !defined(_WCHAR_H) && !defined(_STDDEF_H) && !defined(_STDDEF_H_) && !defined(_ANSI_STDDEF_H) && !defined(__WCHAR_TYPE__) && !defined(_WCHAR_T)
+ #if !defined(_WCHAR_H) && !defined(_STDDEF_H) && !defined(_STDDEF_H_) && !defined(_ANSI_STDDEF_H) && !defined(__WCHAR_TYPE__) && !defined(_WCHAR_T) && !defined(__WCHARTDEF__)
 typedef ulong32   wchar_t;
  #endif
  #endif
@@ -29432,6 +29450,11 @@ void rsa_free(rsa_key *key) {
    @return CRYPT_OK if successful, upon error allocated memory is freed
  */
 int rsa_import(const unsigned char *in, unsigned long inlen, rsa_key *key) {
+#ifdef __MRC__
+/* Disable optimizations for this function so MrC will compile it correctly. */
+#pragma options opt off
+#endif
+
     int           err;
     void          *zero;
     unsigned char *tmpbuf;
@@ -30547,6 +30570,11 @@ static int _sha256_compress(hash_state * md, unsigned char *buf)
 static int  sha256_compress(hash_state * md, unsigned char *buf)
 #endif
 {
+#ifdef __MRC__
+/* MrC hangs while optimizing the code for this function. */
+#pragma options opt off
+#endif
+
     ulong32 S[8], W[64], t0, t1;
 #ifdef LTC_SMALL_CODE
     ulong32 t;
@@ -31055,6 +31083,11 @@ static int _sha512_compress(hash_state * md, unsigned char *buf)
 static int  sha512_compress(hash_state * md, unsigned char *buf)
 #endif
 {
+#ifdef __MRC__
+/* MrC hangs while optimizing the code for this function. */
+#pragma options opt off
+#endif
+
     ulong64 S[8], W[80], t0, t1;
     int i;
 
@@ -31164,6 +31197,11 @@ HASH_PROCESS(sha512_process, sha512_compress, sha512, 128)
 */
 int sha512_done(hash_state * md, unsigned char *out)
 {
+#ifdef __MRC__
+/* Disable optimizations for this function so MrC will compile it correctly. */
+#pragma options opt off
+#endif
+
     int i;
 
     LTC_ARGCHK(md  != NULL);
@@ -33864,6 +33902,11 @@ int gcm_add_iv(gcm_state *gcm,
 int gcm_done(gcm_state *gcm, 
                      unsigned char *tag,    unsigned long *taglen)
 {
+#ifdef __MRC__
+/* Disable optimizations for this function so MrC will compile it correctly. */
+#pragma options opt off
+#endif
+
    unsigned long x;
    int err;
 
@@ -34062,6 +34105,11 @@ int gcm_process(gcm_state *gcm,
                      unsigned char *ct,
                      int direction)
 {
+#ifdef __MRC__
+/* Selectively enable optimization. */
+#pragma options opt local
+#endif
+
    unsigned long x;
    int           y, err;
    unsigned char b;
@@ -36697,6 +36745,11 @@ void _private_tls_poly1305_init(poly1305_context *ctx, const unsigned char key[3
 }
 
 static void _private_tls_poly1305_blocks(poly1305_state_internal_t *st, const unsigned char *m, size_t bytes) {
+#ifdef __MRC__
+/* MrC quits with a code generator error here at higher optimization levels. */
+#pragma options opt local
+#endif
+
     const unsigned long hibit = (st->final) ? 0 : (1UL << 24); /* 1 << 128 */
     unsigned long r0,r1,r2,r3,r4;
     unsigned long s1,s2,s3,s4;

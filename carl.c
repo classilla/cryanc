@@ -8,7 +8,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#if !defined(__AUX__) && !defined(__AMIGA__) && (!defined(NS_TARGET_MAJOR) || (NS_TARGET_MAJOR > 3)) && !defined(__MACHTEN_68K__) && !defined(__sun) && !defined(__BEOS__) && (!defined(__hppa) && !defined(__hpux))
+#if !defined(__AUX__) && !defined(__AMIGA__) && (!defined(NS_TARGET_MAJOR) || (NS_TARGET_MAJOR > 3)) && !defined(__MACHTEN_68K__) && !defined(__sun) && !defined(__BEOS__) && (!defined(__hppa) && !defined(__hpux)) && !defined(macintosh)
 #include <sys/select.h>
 #endif
 #include <netinet/in.h>
@@ -55,7 +55,12 @@ int stdin_pending() {
     return (read(STDIN_FILENO, &c, 0) >= 0);
 }
 #else
+#if defined(__MRC__)
+/* GUSI stdio isn't very std, so also check only in proxy mode. */
+#define stdin_pending() (proxy && FD_ISSET(STDIN_FILENO, &fdset))
+#else
 #define stdin_pending() (FD_ISSET(STDIN_FILENO, &fdset))
+#endif
 #endif
 
 void error(char *msg, int code) {
@@ -198,8 +203,11 @@ void help(int longdesc, char *me) {
 "-t No timeout (default is 10s)\n"
 "-u Upgrade HTTP requests to HTTPS transparently\n"
 "-s Spoof HTTP/1.1 replies as HTTP/1.0 (irrelevant without -H, -p or -i)\n"
+#if !defined(__BEOS__)
+/* Accepted but ignored, being limited to TLS 1.2. */
 "-3 Do not retry as TLS 1.2\n"
 "-2 Negotiate TLS 1.2 instead of 1.3\n"
+#endif
     , me);
 }
 
