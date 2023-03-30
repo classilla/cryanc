@@ -211,6 +211,28 @@ typedef unsigned long long u_int64_t;
 #endif
 #endif
 
+/* SCO Unix 4.2 (pre-OpenServer)*/
+#if defined (M_XENIX) && !defined(_SCO_DS)
+#warning compiling for SCO Unix
+#define NOT_POSIX 1
+#include <sys/types.h>
+#include <stdarg.h>
+int usleep(unsigned int useconds)
+{
+   struct timeval temptval;
+
+   if (useconds <= 0) return;
+   temptval.tv_sec = useconds / 1000000;
+   temptval.tv_usec = useconds % 1000000;
+   if (select(0,NULL,NULL,NULL,&temptval) == -1 && errno != 4)
+   {
+	  perror("sleep with select");
+	  exit(1);
+	}
+ }
+
+#endif
+
 /* Distinguish NeXTSTEP/OpenSTEP from Rhapsody and from Mac OS X */
 #if defined(__MACH__)
 #if !defined(__APPLE__)

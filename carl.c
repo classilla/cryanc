@@ -8,13 +8,17 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#if !defined (M_XENIX) || defined(_SCO_DS) //On SCO Unix the next line crashes gcc, but on OpenServer it might work/be needed?
 #if !defined(__AUX__) && !defined(__AMIGA__) && (!defined(NS_TARGET_MAJOR) || (NS_TARGET_MAJOR > 3)) && !defined(__MACHTEN_68K__) && !defined(__sun) && !defined(__BEOS__) && (!defined(__hppa) && !defined(__hpux)) && !defined(macintosh)
 #include <sys/select.h>
 #endif
+#endif
+
 #if defined(macintosh)
 #include <ioctl.h>
 #include <sys/filio.h>
 #endif
+
 #include <netinet/in.h>
 #include <netdb.h> 
 
