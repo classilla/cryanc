@@ -33367,7 +33367,7 @@ int ECB_TEST(void)
 */
 void ECB_DONE(symmetric_key *skey)
 {
-  //LTC_UNUSED_PARAM(skey);
+  /* LTC_UNUSED_PARAM(skey); */
 }
 
 
@@ -39788,7 +39788,7 @@ void tls_certificate_set_algorithm(struct TLSContext *context, unsigned int *alg
         return;
     }
 
-    // client should fail on unsupported signature
+    /* client should fail on unsupported signature */
     if (!context->is_server) {
         DEBUG_PRINT0("UNSUPPORTED SIGNATURE ALGORITHM\n");
         context->critical_error = 1;
@@ -44013,7 +44013,7 @@ int tls_parse_verify_tls13(struct TLSContext *context, const unsigned char *buf,
             break;
 #endif
         case 0x0804:
-            valid = _private_tls_verify_rsa(context, sha256, buf + 7, signature_size, signing_data, signing_data_len, 0); // ???
+            valid = _private_tls_verify_rsa(context, sha256, buf + 7, signature_size, signing_data, signing_data_len, 0); /* ??? */
             break;
         default:
             DEBUG_PRINT1("Unsupported signature: %x\n", (int)signature);
