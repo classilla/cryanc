@@ -11,6 +11,10 @@
 #if !defined(__AUX__) && !defined(__AMIGA__) && (!defined(NS_TARGET_MAJOR) || (NS_TARGET_MAJOR > 3)) && !defined(__MACHTEN_68K__) && !defined(__sun) && !defined(__BEOS__) && (!defined(__hppa) && !defined(__hpux)) && !defined(macintosh)
 #include <sys/select.h>
 #endif
+#if defined(macintosh)
+#include <ioctl.h>
+#include <sys/filio.h>
+#endif
 #include <netinet/in.h>
 #include <netdb.h> 
 
@@ -27,6 +31,25 @@
 int quiet = 0;
 int proxy = 0;
 int http09 = 0;
+
+void error(char *msg, int code) {
+    if (proxy) {
+        if (!http09)
+            fprintf(stdout, "HTTP/1.0 502 Proxy Error\r\n"
+                            "Content-type: text/html\r\n\r\n");
+        fprintf(stdout, "%s\n", msg);
+        exit(code);
+    }
+
+    if (!quiet) {
+        if (errno > 0) perror(msg); else fprintf(stdout, "%s\n", msg);
+    }
+    exit(code);
+}
+
+void timeout() { /* portable enough */
+    error("Timeout", 254);
+}
 
 /* The BeOS port is bound by unusual constraints, partially by Metrowerks
    cc, partially by the operating system. Some of the code here is
@@ -55,32 +78,37 @@ int stdin_pending() {
     return (read(STDIN_FILENO, &c, 0) >= 0);
 }
 #else
-#if defined(__MRC__)
+#if defined(macintosh)
+/* The MacOS port is also bound by unusual constraints because it's MacOS. */
+
 /* GUSI stdio isn't very std, so also check only in proxy mode. */
 #define stdin_pending() (proxy && FD_ISSET(STDIN_FILENO, &fdset))
+
+/* In a cooperative world connect() must be non-blocking. */
+void mac_connect(int sockfd, struct sockaddr *s, int ssize, char *err, int code) {
+    long m=1;
+    fd_set fdset;
+
+    (void)ioctl(sockfd, FIONBIO, &m);
+    m = connect(sockfd, s, ssize);
+    if (m < 0) {
+        /* GUSI might return any of these values for an in-progress socket */
+        if (errno != EISCONN && /* connected already? */
+                errno != EINPROGRESS &&
+                errno != EALREADY)
+            error(err, code);
+    }
+    /* wait for it to become writeable. GUSI calls WaitNextEvent for us,
+       so make the socket blocking again to preserve other semantics. */
+    m=0; (void)ioctl(sockfd, FIONBIO, &m);
+    FD_ZERO(&fdset);
+    FD_SET(sockfd, &fdset);
+    (void)select(sockfd + 1, NULL, &fdset, NULL, NULL);
+}
 #else
 #define stdin_pending() (FD_ISSET(STDIN_FILENO, &fdset))
 #endif
 #endif
-
-void error(char *msg, int code) {
-    if (proxy) {
-        if (!http09)
-            fprintf(stdout, "HTTP/1.0 502 Proxy Error\r\n"
-                            "Content-type: text/html\r\n\r\n");
-        fprintf(stdout, "%s\n", msg);
-        exit(code);
-    }
-
-    if (!quiet) {
-        if (errno > 0) perror(msg); else fprintf(stdout, "%s\n", msg);
-    }
-    exit(code);
-}
-
-void timeout() { /* portable enough */
-    error("Timeout", 254);
-}
 
 int https_send_pending(int client_sock, struct TLSContext *context) {
     unsigned int out_buffer_len = 0;
@@ -532,9 +560,14 @@ retrial: /* considered harmful */
             memcpy((char *)&serv_addr.sin_addr.s_addr,
                    (char *)socksserver->h_addr, socksserver->h_length);
             serv_addr.sin_port = htons(socksport);
+#if defined(macintosh)
+            mac_connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr),
+                "connect to SOCKS", 4);
+#else
             if (connect(sockfd,(struct sockaddr *)&serv_addr,
                         sizeof(serv_addr)) < 0) 
                 error("connect to SOCKS", 4);
+#endif
 
             /* we should be able to send this much without blocking */
             if (send(sockfd, spacket, 9, 0) != 9)
@@ -566,8 +599,13 @@ retrial: /* considered harmful */
     if (!proxycon) {
         memcpy((char *)&serv_addr.sin_addr.s_addr, (char *)server->h_addr, server->h_length);
         serv_addr.sin_port = htons(portno);
+#if defined(macintosh)
+        mac_connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr),
+           "connect", 5);
+#else
         if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0) 
            error("connect", 5);
+#endif
     }
 
     /* set up http or tls */
