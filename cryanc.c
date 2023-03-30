@@ -282,11 +282,13 @@ typedef unsigned long long u_int64_t;
 #error currently requires ixemul for proper POSIX semantics
 #error send your patch to fix this - you can help
 #endif
-#if !defined(__GNUC__)
-#warning non-gcc compiler detected, unsupported
-#endif
 #if !defined(__mc68000__) && !defined(__mc68000) && !defined(mc68000)
 #warning not a 68K target, assuming native PowerPC, unsupported
+#endif
+#if !defined(__GNUC__)
+#warning non-gcc compiler detected, unsupported
+#else
+#warning remember to use -mstackextend
 #endif
 #define NOT_POSIX 1
 #include <stdarg.h>
@@ -294,6 +296,8 @@ typedef unsigned long long u_int64_t;
 #ifndef __BIG_ENDIAN__
 #define __BIG_ENDIAN__ 1
 #endif
+/* Don't let the stack bloat */
+#define BIG_STRING_SIZE 0x1000
 #endif
 
 /* Mac OS with MrC (possibly also SC). This is REALLY BUGGY. */
