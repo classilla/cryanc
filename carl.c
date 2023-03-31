@@ -267,7 +267,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     proxyurl = getenv("ALL_PROXY");
-    if (!strlen(proxyurl)) proxyurl = NULL;
+    if (proxyurl != NULL && !strlen(proxyurl)) proxyurl = NULL;
 
     for(;;) {
         if (++arg >= argc) {
