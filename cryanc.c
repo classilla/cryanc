@@ -211,6 +211,28 @@ typedef unsigned long long u_int64_t;
 #endif
 #endif
 
+/* SCO Unix 4.2 (pre-OpenServer)*/
+#if defined (M_XENIX) && !defined(_SCO_DS)
+#warning compiling for SCO Unix
+#define NOT_POSIX 1
+#include <sys/types.h>
+#include <stdarg.h>
+int usleep(unsigned int useconds)
+{
+   struct timeval temptval;
+
+   if (useconds <= 0) return;
+   temptval.tv_sec = useconds / 1000000;
+   temptval.tv_usec = useconds % 1000000;
+   if (select(0,NULL,NULL,NULL,&temptval) == -1 && errno != 4)
+   {
+	  perror("sleep with select");
+	  exit(1);
+	}
+ }
+
+#endif
+
 /* Distinguish NeXTSTEP/OpenSTEP from Rhapsody and from Mac OS X */
 #if defined(__MACH__)
 #if !defined(__APPLE__)
@@ -33345,7 +33367,7 @@ int ECB_TEST(void)
 */
 void ECB_DONE(symmetric_key *skey)
 {
-  //LTC_UNUSED_PARAM(skey);
+  /* LTC_UNUSED_PARAM(skey); */
 }
 
 
@@ -36184,7 +36206,7 @@ void curve25519(uint8_t *mypublic, const uint8_t *secret, const uint8_t *basepoi
 #define TLS_DHE_KEY_SIZE          2048
 
 #if(0)
-// you should never use weak DH groups (1024 bits)
+/* you should never use weak DH groups (1024 bits)
 // but if you have old devices (like grandstream ip phones)
 // that can't handle 2048bit DHE, uncomment next lines
 // and define TLS_WEAK_DH_LEGACY_DEVICES
@@ -36192,7 +36214,7 @@ void curve25519(uint8_t *mypublic, const uint8_t *secret, const uint8_t *basepoi
 //     #define TLS_DH_DEFAULT_P            "B10B8F96A080E01DDE92DE5EAE5D54EC52C99FBCFB06A3C69A6A9DCA52D23B616073E28675A23D189838EF1E2EE652C013ECB4AEA906112324975C3CD49B83BFACCBDD7D90C4BD7098488E9C219A73724EFFD6FAE5644738FAA31A4FF55BCCC0A151AF5F0DC8B4BD45BF37DF365C1A65E68CFDA76D4DA708DF1FB2BC2E4A4371"
 //     #define TLS_DH_DEFAULT_G            "A4D1CBD5C3FD34126765A442EFB99905F8104DD258AC507FD6406CFF14266D31266FEA1E5C41564B777E690F5504F213160217B4B01B886A5E91547F9E2749F4D7FBD7D3B9A92EE1909D0D2263F80A76A6A24C087A091F531DBF0A0169B6A28AD662A4D18E73AFA32D779D5918D08BC8858F4DCEF97C2A24855E6EEB22B3B2E5"
 //     #define TLS_DHE_KEY_SIZE          1024
-// #endif
+// #endif */
 #endif
 
 #ifndef TLS_MALLOC
@@ -39766,7 +39788,7 @@ void tls_certificate_set_algorithm(struct TLSContext *context, unsigned int *alg
         return;
     }
 
-    // client should fail on unsupported signature
+    /* client should fail on unsupported signature */
     if (!context->is_server) {
         DEBUG_PRINT0("UNSUPPORTED SIGNATURE ALGORITHM\n");
         context->critical_error = 1;
@@ -43991,7 +44013,7 @@ int tls_parse_verify_tls13(struct TLSContext *context, const unsigned char *buf,
             break;
 #endif
         case 0x0804:
-            valid = _private_tls_verify_rsa(context, sha256, buf + 7, signature_size, signing_data, signing_data_len, 0); // ???
+            valid = _private_tls_verify_rsa(context, sha256, buf + 7, signature_size, signing_data, signing_data_len, 0); /* ??? */
             break;
         default:
             DEBUG_PRINT1("Unsupported signature: %x\n", (int)signature);
