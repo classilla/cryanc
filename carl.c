@@ -217,7 +217,7 @@ char *parse_url(char *url, char *hostname, size_t *port, size_t *proto) {
 }
 
 void help(int longdesc, char *me) {
-    fprintf(stderr, "Crypto Ancienne Resource Loader v2.0-git\n");
+    fprintf(stderr, "Crypto Ancienne Resource Loader v2.2\n");
     if (!longdesc) return;
 
     fprintf(stderr,

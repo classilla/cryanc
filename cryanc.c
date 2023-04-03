@@ -200,9 +200,8 @@ typedef unsigned long long u_int64_t;
 #define NOT_POSIX 1
 #define __WCHAR_TYPE__ 1 /* seems to already have it */
 /* big surprise, Alpha hates unaligned pointers. yeah, you were shocked.
- * however, NO_FUNNY_ALIGNMENT assumes big endian and Alpha is little
- * (mostly the uint64_t stuff). since it's slower and we require -misalign
- * anyway due to other alignment issues, don't bother with it. */
+   however, NO_FUNNY_ALIGNMENT is still not enough for it, so no point
+   in using it yet! */
 /* #define NO_FUNNY_ALIGNMENT 1 */
 #include <stdarg.h>
 #include <inttypes.h>
@@ -267,7 +266,8 @@ int usleep(unsigned int useconds)
 
 /* A/UX (might work with 2, tested on 3.1) */
 #if defined(__AUX__)
-#warning compiling for A/UX - remember to include -lbsd
+/* Needs BSD compat library for usleep. */
+#warning compiling for A/UX - remember to include -lbsd or /lib/libbsd.a
 #include <stdarg.h>
 /* Seems to lack the usual macros for endianness. */
 #ifndef __BIG_ENDIAN__
@@ -331,6 +331,8 @@ int usleep(unsigned int useconds)
 /* This works around issues with the compiler (PowerPC handles misaligned
    accesses just fine). */
 #define NO_FUNNY_ALIGNMENT 1
+/* This makes it a bit more stable. Not sure what the optimum value is. */
+#define BIG_STRING_SIZE 0x0800
 #define inline
 /* ^ ... to nothing. These compilers don't understand this keyword, but they
    automatically inline short functions. */
