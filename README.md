@@ -62,7 +62,7 @@ These are tested using `carl`, which is the included example, and should "just w
 - AmigaOS 3.9 (68K; `gcc` 2.95.3 with `ixemul.library` and `ixnet.library`; `-mstackextend` strongly advised). Using library version 63.1; may work on earlier versions and earlier OSes. The [Aminet ADE package](http://aminet.net/package/dev/gcc/ADE) is most convenient for building this. Note that stack usage may be considerable -- my test script uses a stack of 132K minimum.
 - IRIX 6.5.30 (SGI MIPS; `cc` (actually MIPSPro 7.4.4m)). For 6.5.22, you may need to use `c99` (older MIPSPro versions may also work with `c99`).
 - AIX 4+ (PowerPC, Power ISA; `gcc` 2.7.2.2 and 4.8). This is tested on 4.1.5 and 6.1, and should "just work" on 5L and 7.
-- A/UX 3.1 (68K; `gcc` 2.7.2.2, requires `-lbsd`)
+- A/UX 3.1 (68K; `gcc` 2.7.2.2, requires `-lbsd` or linking with `/lib/libbsd.a`)
 - SunOS 4.1 (SPARC; `gcc` 2.95.2). Binary compatible with Solbourne OS/MP. Tested on OS/MP 4.1C (SunOS 4.1.3).
 
 ## Working contributed configurations
