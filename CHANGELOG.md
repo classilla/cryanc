@@ -4,7 +4,7 @@
 
 - "Crypto Ancienne Meets the Hooded Fang"
 
-- New ports to classic MacOS/MPW and AmigaOS, and contributed port for SCO Unix 4.2 (SCO ODT).
+- New ports to classic MacOS/MPW and AmigaOS, and contributed ports for SCO Unix 4.2 (SCO ODT) and SerenityOS.
 
 - `carl` now can automatically fallback to TLS 1.2 contexts for sites that don't have ciphers in common with TLS 1.3 (except BeOS, which is always TLS 1.2 currently), along with a `-3` option to prevent fallback for testing and higher security. The `-2` option, conversely, forces TLS 1.2 and is intended for debugging only.
 
