@@ -49,7 +49,7 @@ These are all acknowledged limitations in TLSe and should improve as upstream do
 These are tested using `carl`, which is the included example, and should "just work." Most configurations can build simply with `gcc -O3 -o carl carl.c`. The magic for operating system support is almost all in `cryanc.c`.
 
 - Linux (`gcc`). This is tested on `ppc64le` but pretty much any architecture should be compatible (though see notes below about `NO_FUNNY_ALIGNMENT` if you are using a "classic" RISC CPU).
-- NetBSD (`gcc`). Ditto with 32-bit PowerPC and 68K, and probably works on most other BSDs. If someone wants to give this a whack on 4.4BSD or Ultrix I would be highly amused.
+- NetBSD (`gcc`). Ditto with 32-bit PowerPC, 68K and little-endian MIPS, and probably works on most other BSDs. If someone wants to give this a whack on 4.4BSD or Ultrix I would be highly amused.
 
 - Mach family (OpenSTEP 4.0 probably also works given that these all do):
 
@@ -94,7 +94,7 @@ gcc -I`echo $BEINCLUDES | sed 's/;/ -I/g'` -o carl carl.c
   - Due to differences in the way BeOS treats standard input, reading proxy requests from the TTY doesn't currently work (it does from files).
   - Should work with `x86`; not tested with Dano, ZETA or BONE. These versions may not require these limitations. Submit your patch, you can help! (If you're using Haiku, you can just compile Cryanc normally.)
 
-- Classic MacOS (PowerPC; MPW `MrC`). This generates an MPW tool version of `carl` that runs within the MPW Shell or ToolServer. MacOS being MacOS, it has its own weir-dass build instructions:
+- Classic MacOS (PowerPC; MPW `MrC` 4.1.0f1c1 or better). This generates an MPW tool version of `carl` that runs within the MPW Shell or ToolServer. MacOS being MacOS, it has its own weir-dass build instructions:
   - Install MPW and the [GUSI library distribution](https://sourceforge.net/projects/gusi/files/) if you haven't already, making sure you run the installation scripts or your setup won't have all the necessary headers. We use GUSI's latest version 2.2.3 but earlier versions may work. You also need to ensure that `${GUSI}` is set to your installation folder, which the installation should do for you (e.g., `Set -e "Macintosh HD:GUSI_223:"`).
   - UnStuff `carl_mpw.sit.hqx`; you should get a folder named `mpw`. Open the `Makefile` inside it (it should start the MPW Shell) and ensure your working directory is that `mpw` folder, not the `cryanc` folder it's within.
   - Press Command-B to build, and enter the target `carl`. The `Makefile` will fix up the type and creator of the source files and generate a tool `carl` in the same `mpw` folder.
