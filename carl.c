@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#if defined (M_XENIX)
+#if defined (M_XENIX) && !defined(M_UNIX)
 #include <sys/types.tcp.h>
 #endif
 #include <sys/socket.h>
