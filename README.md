@@ -25,6 +25,7 @@ In addition, `carl`, the included `curl`-like utility and the Cryanc example app
 
 - SOCKSv4 client support (keep your Old Ones behind a firewall, they tend to cause mental derangement in weaker humans)
 - HTTP and HTTPS proxy feature with similarly ancient browsers that do not insist on using `CONNECT` (requires `inetd` or `inetd`-like connecting piece such as [`micro_inetd`](https://acme.com/software/micro_inetd/))
+  - Browsers known to work: NCSA X-Mosaic 2.7b\* and [Mosaic-CK](http://www.floodgap.com/retrotech/machten/mosaic/) on Un*xy things, Lynx and [MacLynx](http://www.floodgap.com/retrotech/mac/lynx/) 2.7 and possibly some early versions of 2.8, OmniWeb before 4.2, [Classilla 9.3.4b](http://www.floodgap.com/software/classilla/carl.html), [BeOS NetPositive+](https://oldvcr.blogspot.com/2022/10/going-where-beos-netpositive-hasnt-gone.html) (_not_ regular NetPositive), Magic Cap [Web Browser 3.5.1+](https://oldvcr.blogspot.com/2023/01/bringing-tls-to-magic-cap-datarover.html). Also see [this post](https://oldvcr.blogspot.com/2020/11/fun-with-crypto-ancienne-tls-for.html) and [this post](http://oldvcr.blogspot.com/2022/07/crypto-ancienne-20-now-brings-tls-13-to.html).
 
 See the `carl` manual page in this repo for more (in `man` and Markdown format).
 
@@ -45,10 +46,10 @@ These are all acknowledged limitations in TLSe and should improve as upstream do
 
 ## Working configurations
 
-These are tested using `carl`, which is the included example. Most configurations can build simply with `gcc -O3 -o carl carl.c`. The magic for operating system support is almost all in `cryanc.c`.
+These are tested using `carl`, which is the included example, and should "just work." Most configurations can build simply with `gcc -O3 -o carl carl.c`. The magic for operating system support is almost all in `cryanc.c`.
 
-- Linux (`gcc`). This is tested on `ppc64le` but pretty much any architecture should work.
-- NetBSD (`gcc`). Ditto with 32-bit PowerPC and 68K, and probably works on most other BSDs. If someone wants to give this a whack on 4.4BSD or Ultrix I would be highly amused.
+- Linux (`gcc`). This is tested on `ppc64le` but pretty much any architecture should be compatible (though see notes below about `NO_FUNNY_ALIGNMENT` if you are using a "classic" RISC CPU).
+- NetBSD (`gcc`). Ditto with 32-bit PowerPC, 68K and little-endian MIPS, and probably works on most other BSDs. If someone wants to give this a whack on 4.4BSD or Ultrix I would be highly amused.
 
 - Mach family (OpenSTEP 4.0 probably also works given that these all do):
 
@@ -58,15 +59,15 @@ These are tested using `carl`, which is the included example. Most configuration
   - NeXTSTEP 3.3 (HP PA-RISC; `cc` (actually `gcc` 2.5))
   - Power MachTen 4.1.4 (PowerPC; `gcc` 2.8.1; `setstackspace 1048576 /usr/bin/cpp` and `setstackspace 4194304 /usr/bin/as`)
 
-- AmigaOS 3.9 (68K; `gcc` 2.95.3 with `ixemul.library` and `ixnet.library`; `-mstackextend` strongly advised). Using library version 63.1; may work on earlier versions and earlier OSes. The [Aminet ADE package](http://aminet.net/package/dev/gcc/ADE) is most convenient for building this. Note that stack usage may be considerable - my CLI test script on the A4000T starts out with `stack 8388608` just to make sure there are no glitches.
+- AmigaOS 3.9 (68K; `gcc` 2.95.3 with `ixemul.library` and `ixnet.library`; `-mstackextend` strongly advised). Using library version 63.1; may work on earlier versions and earlier OSes. The [Aminet ADE package](http://aminet.net/package/dev/gcc/ADE) is most convenient for building this. Note that stack usage may be considerable -- my test script uses a stack of 132K minimum.
 - IRIX 6.5.30 (SGI MIPS; `cc` (actually MIPSPro 7.4.4m)). For 6.5.22, you may need to use `c99` (older MIPSPro versions may also work with `c99`).
 - AIX 4+ (PowerPC, Power ISA; `gcc` 2.7.2.2 and 4.8). This is tested on 4.1.5 and 6.1, and should "just work" on 5L and 7.
-- A/UX 3.1 (68K; `gcc` 2.7.2.2, requires `-lbsd`)
+- A/UX 3.1 (68K; `gcc` 2.7.2.2, requires `-lbsd` or linking with `/lib/libbsd.a`)
 - SunOS 4.1 (SPARC; `gcc` 2.95.2). Binary compatible with Solbourne OS/MP. Tested on OS/MP 4.1C (SunOS 4.1.3).
 
 ## Working contributed configurations
 
-These are attested to be working but are maintained by others.
+These are attested to be working but are maintained by others. Some "just work" and others have specific support in the code base.
 
 - Mac OS X Public Beta through 10.1 (PowerPC; Apple `cc` 912+ (actually `gcc` 2.95.2))
 - NeXTSTEP 3.3 (68K; `cc` (actually `gcc` 2.5))
@@ -74,18 +75,37 @@ These are attested to be working but are maintained by others.
 - IRIX 6.5 (SGI MIPS; `gcc` 9.2.0)
 - Haiku R1/beta2 (`x86_64`; `gcc` 8.3.0, requires `-lnetwork`)
 - Solaris 9 and 10 (SPARC v9; `gcc` 2.95.3+, requires `-lsocket -lnsl`)
+- SCO UNIX 4.2 OpenDesktop (SCO ODT) (`i386`; `gcc` 2.5.8+)
 - OpenServer 6 (`i386`; `gcc` 7.3.0, requires `-lsocket`)
 - HP-UX 11.31 (Itanium; `cc` A.06.26 and `gcc` 4.7.4)
 - HP-UX 11.11+ (HP PA-RISC; `gcc` 4.7.1)
 - HP-UX 10.20 (HP PA-RISC; `gcc` 2.95.3, requires `-Doldhpux`)
+- SerenityOS (`x86_64`, `gcc` 12+ and `clang` 13+)
 
 ## Partially working configurations
 
-- BeOS R5 (PowerPC BeBox; `cc` (actually Metrowerks CodeWarrior `mwcc` 2.2)). **This port is very fragile.** Must compile **without optimization** (i.e., `cc -o carl carl.c`, not even `-O`), and you may need to use `carl` with the `-t` option to disable timeouts or long transactions may not complete. TLS 1.3 is _not_ currently supported due to limited system resources; all requests are TLS 1.2. Due to differences in the way BeOS treats standard input, reading proxy requests from the TTY doesn't currently work (it does from files). Should work with `x86`; not tested with Dano, ZETA, BONE or `gcc`.
+These platforms do _not_ "just work." It is possible due to various compiler or OS limitations that they may never work completely.
+
+- BeOS R5 (PowerPC BeBox and Power Macintosh; `cc` (actually Metrowerks CodeWarrior `mwcc` 2.2) or Fred Fish Geek Gadgets `gcc` 2.90.27 (`egcs-1.0.2`)). **This port is very fragile:**
+  - Must compile **without optimization** (i.e., `cc -o carl carl.c`, not even `-O`), and you may need to use `carl` with the `-t` option to disable timeouts or long transactions may not complete. For `gcc`, use something like ```
+gcc -I`echo $BEINCLUDES | sed 's/;/ -I/g'` -o carl carl.c
+```. However, CodeWarrior seems to produce a faster binary than `gcc` even though `gcc` can make a stable binary at `-O3`.
+  - TLS 1.3 is _not_ currently supported due to limited system resources; all requests are TLS 1.2.
+  - Due to differences in the way BeOS treats standard input, reading proxy requests from the TTY doesn't currently work (it does from files).
+  - Should work with `x86`; not tested with Dano, ZETA or BONE. These versions may not require these limitations. Submit your patch, you can help! (If you're using Haiku, you can just compile Cryanc normally.)
+
+- Classic MacOS (PowerPC; MPW `MrC` 4.1.0f1c1 or better). This generates an MPW tool version of `carl` that runs within the MPW Shell or ToolServer. MacOS being MacOS, it has its own weir-dass build instructions:
+  - Install MPW and the [GUSI library distribution](https://sourceforge.net/projects/gusi/files/) if you haven't already, making sure you run the installation scripts or your setup won't have all the necessary headers. We use GUSI's latest version 2.2.3 but earlier versions may work. You also need to ensure that `${GUSI}` is set to your installation folder, which the installation should do for you (e.g., `Set -e "Macintosh HD:GUSI_223:"`).
+  - UnStuff `carl_mpw.sit.hqx`; you should get a folder named `mpw`. Open the `Makefile` inside it (it should start the MPW Shell) and ensure your working directory is that `mpw` folder, not the `cryanc` folder it's within.
+  - Press Command-B to build, and enter the target `carl`. The `Makefile` will fix up the type and creator of the source files and generate a tool `carl` in the same `mpw` folder.
+  - To run `carl` from the MPW Shell, just enter `carl` or `carl -options "URL"` (the URL must be quoted since slashes can be salient to MPW). `carl` will cooperatively multitask with MPW and other applications while running, even if a host does not respond (press Command-. to cancel a request). However, due to differences in the way the Shell treats standard input, reading proxy requests directly from the keyboard doesn't currently work (it does from files and pipes).
+  - **`MrC` generates verifiably incorrect code.** To reduce this risk, we disable optimization and spot-enable it only for certain critical or likely-safe functions. It is possible it has other bugs that cause miscompiles or crashes, or those functions aren't actually as safe as we think they are. Because most of the code is not optimized, you may need to use `carl` with the `-t` option to disable timeouts or long transactions may not complete.
+  - Because of high stack demands, if you experience crashes you may need to expand the MPW Shell's default stack allotment for tools. The `HEXA` 128 resource contains the default stack space as a 32-bit integer; a value of `0008 0000` would be 512K, for example.
+  - To use the `carl` MPW tool as a proxy requires a Mac `inetd` clone. The GUSI docs talk about "David Petersons `inetd`" [sic] but we can't find this (can you help?). We are exploring whether [ToolDaemon](https://github.com/fblondiau/ToolDaemon) can be hacked to serve this purpose, since the source code is available. In the meantime, if you need to run it as a proxy for Classilla or MacLynx, your best bet right now is to compile and run `carl` under Power MachTen -- and it will probably be more stable, too.
 
 ## Not tested or not working but might in the future
 
-- Classic Mac OS (PowerPC with GUSI and MPW `gcc` 2.5). For full function this port would also need an `inetd`-like tool such as [ToolDaemon](https://github.com/fblondiau/ToolDaemon). For now, your best bet is to use Power MachTen.
+- Classic Mac OS (68K `SC` with GUSI; or PowerPC MPW `gcc` 2.5 with GUSI; or Metrowerks CodeWarrior on 68K or PowerPC with GUSI and SIOUX). The `gcc` MPW requires that the source files be converted to CR instead of CRLF and has other odd quirks, but should avoid `MrC`'s code generation problems. The same may apply for CodeWarrior. As for 68K Macs, the existing code may already work with Symantec C under MPW but I haven't tried, and unfortunately most 68K Macs will not be fast enough for many sites (see notes below about systems slower than 40MHz).
 - It should be possible to port to Win32 with something like `mxe`; there are hooks for it in TLSe already.
 - Solaris 2+ should work now that SunOS 4 does.
 - HP-UX on 68K. We have one locally.
@@ -98,9 +118,9 @@ Most other platforms with `gcc` 2.5 or higher, support for 64-bit ints (usually 
 
 If your system lacks `stdint.h`, you can try using `-DNOT_POSIX=1` to use the built-in definitions. You may also need to add `-include stdarg.h` and other headers. Consider compiling with `-DDEBUG` if you get crashes so you can see where it dies (it's also a neat way to see TLS under the hood).
 
-A few architectures, especially old RISC, may not like the liberties taken with unaligned pointers and memory access. For these systems try `-DNO_FUNNY_ALIGNMENT`. However, this is not well tested, and we may not have smoked all of them out (for example, it's not good enough for DEC Alpha on Tru64, the king of alignment-finicky configurations, and we still have to compile with `-misalign`). Currently this define assumes big-endian.
+A few architectures, especially old RISC, may not like the liberties taken with unaligned pointers and memory access. For these systems try `-DNO_FUNNY_ALIGNMENT`, which is the default for SPARC, HP PA-RISC, MIPS and SuperH. However, it seems we may not have smoked all of them out (for example, it's not good enough for DEC Alpha on Tru64, the king of alignment-finicky configurations, and we still have to use `-misalign` with the Compaq C compiler).
 
-Large local stack allocations are occasionally used for buffering efficiency. If your compiler doesn't like this (Metrowerks comes to mind), try `-DBIG_STRING_SIZE=xx`, substituting a smaller buffer size like 16384 or 4096.
+Large local stack allocations are occasionally used for buffering efficiency. If your compiler doesn't like this (Metrowerks comes to mind) or you get crashes when `carl` terminates, try `-DBIG_STRING_SIZE=xx`, substituting a smaller buffer size like 16384 or 4096.
 
 Once you figure out the secret sauce, we encourage you to put some additional blocks into `cryanc.c` to get the right header files and compiler flags loaded. PRs accepted for these as long as no presently working configuration is regressed. Similarly, we would love to further expand our compiler support, though we now support quite a few.
 
@@ -137,7 +157,7 @@ Crypto Ancienne is released under the BSD license.
 
 Copyright (C) 2020-3 Cameron Kaiser and Contributors. All rights reserved.
 
-Based on TLSe. Copyright (C) 2016-2022 Eduard Suica. All rights reserved.
+Based on TLSe. Copyright (C) 2016-2023 Eduard Suica. All rights reserved.
 
 Based on Adam Langley's implementation of Curve25519. Copyright (C) 2008 Google, Inc. All rights reserved.
 

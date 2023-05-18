@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.2
+
+- "Crypto Ancienne Meets the Hooded Fang"
+
+- New ports to classic MacOS/MPW and AmigaOS, and contributed ports for SCO Unix 4.2 (SCO ODT) and SerenityOS.
+
+- `carl` now can automatically fallback to TLS 1.2 contexts for sites that don't have ciphers in common with TLS 1.3 (except BeOS, which is always TLS 1.2 currently), along with a `-3` option to prevent fallback for testing and higher security. The `-2` option, conversely, forces TLS 1.2 and is intended for debugging only.
+
+- Use `NO_FUNNY_ALIGNMENT` by default on SPARC, HP PA-RISC, MIPS and SuperH, which avoids crashes and performance-draining trips to the system alignment handler (Alpha on Tru64 still requires `-misalign`).
+
+- Allow wrapped records in TLS 1.3 before changing ciphers.
+
+- Support Fred Fish `egcs` on BeOS/PowerPC.
+
+- Minor local and upstream fixes.
+
 ## 2.0
 
 - Support for TLS 1.3 on all supported platforms except classic BeOS
