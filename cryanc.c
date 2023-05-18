@@ -212,10 +212,15 @@ typedef unsigned long long u_int64_t;
 
 /* SCO Unix 4.2 (pre-OpenServer)*/
 #if defined (M_XENIX) && !defined(_SCO_DS)
+/* Xenix 2.3.4 */
+#define strstr Strstr
+#define memmove Memmove
+#define LTC_NO_PROTOTYPES
 #warning compiling for SCO Unix
 #define NOT_POSIX 1
 #include <sys/types.h>
 #include <stdarg.h>
+
 int usleep(unsigned int useconds)
 {
    struct timeval temptval;
@@ -229,6 +234,46 @@ int usleep(unsigned int useconds)
 	  exit(1);
 	}
  }
+/*from https://www.samba.org/WinFS_report/winfs_dev/sun/solaris/source/2.50a/replace.c */ 
+char *Strstr(char *s, char *p)
+{
+	int len = strlen(p);
+
+	while ( *s != '\0' ) {
+		if ( strncmp(s, p, len) == 0 )
+		return s;
+		s++;
+	}
+
+	return NULL;
+}
+
+/*from https://discuss.fogcreek.com/techinterview/2822.html, and thanks neozeed */
+void Memmove(char **from, char **to, int size)
+{
+  int i,diff;
+
+  if(*from==*to)
+  {
+    printf("\n\nNothing to copy!\n");
+  }
+  else if(*from>*to)
+  {
+    diff=*from-*to; 
+    for(i=diff;i<=size+diff-1;i++)
+    {
+      (*to)[i-diff] = (*from)[(i-diff)];
+    }
+  }
+  else
+  {
+    diff=*to-*from; 
+    for(i=size+diff-1;i>=diff;i--)
+    {
+      (*to)[(i-diff)] = (*from)[(i-diff)]; 
+    }
+  } 
+} 
 
 #endif
 
@@ -17009,7 +17054,7 @@ int der_printable_value_decode(int v);
   #include <wchar.h>
  #else
   /* Don't define on platforms that predefine it. */
- #if !defined(_WCHAR_H) && !defined(_STDDEF_H) && !defined(_STDDEF_H_) && !defined(_ANSI_STDDEF_H) && !defined(__WCHAR_TYPE__) && !defined(_WCHAR_T) && !defined(__WCHARTDEF__)
+ #if defined(M_XENIX) || !defined(_WCHAR_H) && !defined(_STDDEF_H) && !defined(_STDDEF_H_) && !defined(_ANSI_STDDEF_H) && !defined(__WCHAR_TYPE__) && !defined(_WCHAR_T) && !defined(__WCHARTDEF__)
 typedef ulong32   wchar_t;
  #endif
  #endif
