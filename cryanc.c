@@ -210,12 +210,42 @@ typedef unsigned long long u_int64_t;
 #endif
 #endif
 
-/* SCO Unix 4.2 (pre-OpenServer)*/
+/* SCO Xenix and Unix 4.2 (pre-OpenServer)*/
 #if defined (M_XENIX) && !defined(_SCO_DS)
+
+#if !defined(M_UNIX) /* Xenix 2.3.4 */
+#warning compiling for SCO Xenix
+#include <stddef.h>
+
+/* Xenix's realloc is also weird */
+char *_crealloc(void *p, unsigned s) { return (p) ? realloc(p,s) : malloc(s); }
+#define TLS_REALLOC(p,s) _crealloc(p,s)
+#define XREALLOC _crealloc
+
+/*from https://www.samba.org/WinFS_report/winfs_dev/sun/solaris/source/2.50a/replace.c */ 
+char *strstr(char *s, char *p)
+{
+	int len = strlen(p);
+
+	while ( *s != '\0' ) {
+		if ( strncmp(s, p, len) == 0 )
+		return s;
+		s++;
+	}
+
+	return NULL;
+}
+
+#define memmove(d,s,l) (bcopy((char *)(s),(char *)(d),(l)))
+#else
 #warning compiling for SCO Unix
+#endif /* Xenix 2.3.4 */
+
+#define LTC_NO_PROTOTYPES
 #define NOT_POSIX 1
 #include <sys/types.h>
 #include <stdarg.h>
+
 int usleep(unsigned int useconds)
 {
    struct timeval temptval;
@@ -230,7 +260,7 @@ int usleep(unsigned int useconds)
 	}
  }
 
-#endif
+#endif /* SCO Xenix, Unix, ODT */
 
 /* Distinguish NeXTSTEP/OpenSTEP from Rhapsody and from Mac OS X */
 #if defined(__MACH__)
@@ -17007,9 +17037,8 @@ int der_printable_value_decode(int v);
 /* UTF-8 */
  #if (defined(SIZE_MAX) || __STDC_VERSION__ >= 199901L || defined(WCHAR_MAX) || defined(_WCHAR_T) || defined(_WCHAR_T_DEFINED) || defined (__WCHAR_TYPE__)) && !defined(LTC_NO_WCHAR)
   #include <wchar.h>
- #else
-  /* Don't define on platforms that predefine it. */
- #if !defined(_WCHAR_H) && !defined(_STDDEF_H) && !defined(_STDDEF_H_) && !defined(_ANSI_STDDEF_H) && !defined(__WCHAR_TYPE__) && !defined(_WCHAR_T) && !defined(__WCHARTDEF__)
+ #else	  
+ #if  !defined(_WCHAR_H) && !defined(_STDDEF_H) && !defined(_STDDEF_H_) && !defined(_ANSI_STDDEF_H) && !defined(__WCHAR_TYPE__) && !defined(_WCHAR_T) && !defined(__WCHARTDEF__)
 typedef ulong32   wchar_t;
  #endif
  #endif
