@@ -217,6 +217,11 @@ typedef unsigned long long u_int64_t;
 #warning compiling for SCO Xenix
 #include <stddef.h>
 
+/* Xenix's realloc is also weird */
+char *_crealloc(void *p, unsigned s) { return (p) ? realloc(p,s) : malloc(s); }
+#define TLS_REALLOC(p,s) _crealloc(p,s)
+#define XREALLOC _crealloc
+
 /*from https://www.samba.org/WinFS_report/winfs_dev/sun/solaris/source/2.50a/replace.c */ 
 char *strstr(char *s, char *p)
 {
